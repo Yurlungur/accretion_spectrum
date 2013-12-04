@@ -7,7 +7,15 @@
 *.so
 *.dylib
 
+
 # Compiled Static libraries
 *.lai
 *.la
 *.a
+
+# Binaries
+*.bin
+
+# Backups
+*.#*
+*#
