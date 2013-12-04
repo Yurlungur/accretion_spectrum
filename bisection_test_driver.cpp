@@ -1,7 +1,7 @@
 // bisection_test_driver.cpp
 
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
-// Time-stamp: <2013-12-04 16:37:25 (jonah)>
+// Time-stamp: <2013-12-04 18:16:30 (jonah)>
 
 // This tests the bisection root finding algorithm.
 
@@ -20,7 +20,7 @@ int main() {
   BasicFunction my_binomial(binomial);
   cout << "The functor at zero is: " << my_binomial(0) << "." << endl;
   cout << "Finding the root." << endl;
-  double root = bisection_root_finder(my_binomial, XMIN,XMAX);
+  double root = bisection_root_finder(my_binomial, XMIN, XMAX);
   cout << "The root is: " << root << endl;
   cout << "The functor at the root is: " << my_binomial(root) << endl;
   cout << "The function was called "
