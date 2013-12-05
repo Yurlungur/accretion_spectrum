@@ -1,7 +1,7 @@
 // bisection.hpp
 
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
-// Time-stamp: <2013-12-04 16:37:31 (jonah)>
+// Time-stamp: <2013-12-05 15:09:06 (jonah)>
 
 // This is prototype for a general bisection root-finding algorithm
 // for use in shooting method applications.
@@ -59,30 +59,6 @@ protected:
   // The function
   double (*y)(double);
 };
-
-// Integrator subclass. Specifically for the shooting method.
-class Integrator: public ScalarFunction {
-public:
-  // Constructor. Takes an rkf45 integrator and a function to evaluate
-  // on the output of the integrator. The evaluating function is the
-  // piece we use as output of the functor.
-  Integrator(RKF45& integrator, double (*boundary_conditions)(const RKF45&),
-	     int size);
-  // Destructor
-  ~Integrator();
-
-  // The input/output
-  double operator()(double x);
-  // The size method
-  int size() const;
-
-protected:
-  // The RKF45 integrator
-  RKF45 integrator;
-  // The boundary conditions
-  dVector (*boundary_conditions)(const RKF45&);
-};
-
 // ----------------------------------------------------------------------
 
 

@@ -1,7 +1,7 @@
 // bisection.cpp
 
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
-// Time-stamp: <2013-12-04 16:42:55 (jonah)>
+// Time-stamp: <2013-12-05 15:09:07 (jonah)>
 
 // This is the implementation for a general bisection root-finding
 // algorithm for use in shooting method applications.
