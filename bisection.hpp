@@ -1,7 +1,7 @@
 // bisection.hpp
 
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
-// Time-stamp: <2013-12-05 15:09:06 (jonah)>
+// Time-stamp: <2013-12-07 22:15:29 (jonah)>
 
 // This is prototype for a general bisection root-finding algorithm
 // for use in shooting method applications.

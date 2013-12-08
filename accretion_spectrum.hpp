@@ -1,6 +1,6 @@
 // accretion_spectrum.hpp
 
-// Time-stamp: <2013-12-05 17:02:53 (jonah)>
+// Time-stamp: <2013-12-08 02:47:14 (jonah)>
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
 
 // This is the prototype of the simulation of an axisymmetric
@@ -16,11 +16,11 @@
 // ----------------------------------------------------------------------
 // Parameters we might want to change
 const double GAMMA = 1.5; // The adiabatic index of our gas
-const double ALPHA = 0.1; // The Shakura-Sunyaev alpha
+const double ALPHA = .1; // The Shakura-Sunyaev alpha
 const double F = 3.5E-5; // (1-F) is the radiative efficiency of the disk.
 const double A = 0; // The unit-less spin parameter for black hole.
 const double NUM_SOLAR_MASSES = 10; // The number of masses our black hole is
-const double NUM_EDDINGTON_RATES = 0.1; // How much of the eddington
+const double NUM_EDDINGTON_RATES = .11; // How much of the eddington
 					// accretion rate we want our
 					// accretion rate to be.
 const double ROUT_OVER_RS = 1E5; // how big rout is compared to Rs.
@@ -52,15 +52,15 @@ const double R_G = (G*M)/(C*C); // Twice the Schwarzschild radius of a black hol
 
 // Self-similarity constants
 const double EPSILON_PRIME = ((5.0/3.0) - GAMMA)/(F * (GAMMA - 1));
-const double C2_0 = 2/(5 + 2*EPSILON_PRIME + (ALPHA * ALPHA/EPSILON_PRIME));
-const double V_0 = -ALPHA*sqrt(C2_0/EPSILON_PRIME);
+const double C2_0 = 2/(5 + 2*EPSILON_PRIME + ((ALPHA * ALPHA)/EPSILON_PRIME));
+const double V_0 = 6*ALPHA*sqrt(C2_0/EPSILON_PRIME);
 const double OMEGA_0 = sqrt(C2_0 * EPSILON_PRIME);
 
 // Constants relating to the Runge-Kutta integrator
-const double MIN_NUMBER_POINTS = 1000; // Max number of points sampled
+const double MIN_NUMBER_POINTS = 10000; // Max number of points sampled
 				       // with the Runge-Kutta
 				       // integrator
-const double INTEGRATOR_RELATIVE_ERROR_FACTOR = 1E-5; // what fraction
+const double INTEGRATOR_RELATIVE_ERROR_FACTOR = 1E-12; // what fraction
 						      // of the
 						      // solution is
 						      // allowed to
@@ -121,7 +121,9 @@ double angular_derivative_condition(const RKF45& integrator);
 // ----------------------------------------------------------------------
 // This method is just a helper function this denominator is the same
 // for every one of the odes
-double get_ode_denominator(double R, double v_R, double c2s, double omega);
+void set_psi_chi(double& psi, double& chi, double c2s);
+double get_gamma(double R, double v_R, double c2s, double omega);
+double get_L(double R, double omega);
 double get_v_R_prime(double R, double v_R, double c2s, double omega);
 double get_c2s_prime(double R, double v_R, double c2s, double omega);
 double get_omega_prime(double R, double v_R, double c2s, double omega);
@@ -171,14 +173,17 @@ public:
   // The integrator used. Uninitialized.
   RKF45 integrator;
 
+  // Evaluate the speed condition on the integrator.
+  double evaluate_speed_condition();
+  // Evaluate the angular momentum condition on the integrator.
+  double evaluate_angular_condition();
+
 protected:
   double max_t;
 
   // Initialize an integrater with the appropriate initial data for a
   // guess of Rs.
   void initialize_integrator(double Rs);
-  // Evaluate the speed condition on the integrator.
-  double evaluate_speed_condition();
 
 };
 // ----------------------------------------------------------------------

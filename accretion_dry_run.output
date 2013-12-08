@@ -1,0 +1,10 @@
+Solving for the temperature of an accretion disk around a
+pseudo-Newtonian stellar-mass black hole.
+Parameters are:
+	Adiabatic index: 1.5
+	alpha: 0.1
+	f: 3.5e-05
+	spin a: 0
+	Number of solar masses: 10
+	Fraction eddington accretion: 0.11
+Integrating inward and guessing that the sonic radius is 36925.9.

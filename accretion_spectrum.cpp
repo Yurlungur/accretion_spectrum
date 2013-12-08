@@ -1,6 +1,6 @@
 // accretion_spectrum.cpp
 
-// Time-stamp: <2013-12-05 17:02:07 (jonah)>
+// Time-stamp: <2013-12-08 01:31:24 (jonah)>
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
 
 // This is the implementation of an axisymmetric accretion disk.
@@ -68,10 +68,10 @@ double get_rho(double R, double v_R, double c2s) {
 // The self-similar solutions
 // ----------------------------------------------------------------------
 double v_R_ss(double R_out) {
-  return V_0*sqrt(G*M/R_out);
+  return V_0*sqrt((G*M)/R_out);
 }
 double c2s_ss(double R_out) {
-  return C2_0*G*M/R_out;
+  return (C2_0*(G*M))/R_out;
 }
 double omega_ss(double R_out) {
   return OMEGA_0 * omega_k(R_out);
@@ -117,45 +117,65 @@ double angular_derivative_condition(const RKF45& integrator) {
 
 // The equations for the derivatives
 // ----------------------------------------------------------------------
-double get_ode_denominator(double R, double v_R, double c2s, double omega) {
-  return R * omega_k(R) * (pow(v_R,4)
-			   + c2s * (F * ALPHA * ALPHA * c2s
-				    - 2 * v_R * v_R));
+void set_psi_chi(double& psi, double& chi, double c2s) {
+  psi = ALPHA*c2s;
+  chi = F*psi*psi;
+}
+
+double get_L(double R, double omega) {
+    return R*R*(omega*omega - pow(omega_k(R),2));
+}
+
+double get_gamma(double R, double v_R, double c2s, double omega) {
+  return 0.5*R*omega_k(R)*(pow(v_R,4)*(GAMMA + 1)
+			   + 2*v_R*v_R*c2s*(F*pow(ALPHA,2)*(GAMMA - 1)
+					    + GAMMA)
+			   - F*(GAMMA-1)*pow(ALPHA*c2s,2));
 }
 
 double get_v_R_prime(double R, double v_R, double c2s, double omega) {
-  double numerator, denominator;
-  denominator = get_ode_denominator(R,v_R,c2s,omega);
-  numerator = v_R * (omega_k(R) * (pow(v_R*R*omega,2)
-				   - c2s*(2*F*ALPHA*v_R*R*omega
-					  + 2 * v_R * v_R
-					  + c2s * F * ALPHA * ALPHA)
-				   - pow(v_R*R*omega_k(R),2))
-		     - 2 * v_R * v_R * R * c2s * omega_k_prime(R));
+  double numerator, denominator,psi,chi,sigma,L;
+  denominator = 2*get_gamma(R,v_R,c2s,omega);
+  set_psi_chi(psi,chi,c2s);
+  L = get_L(R,omega);
+  sigma = -v_R*v_R*GAMMA + F*ALPHA*R*v_R*omega*(GAMMA-1)
+    + F*ALPHA*ALPHA*L*(GAMMA-1);
+  numerator = v_R*(omega_k(R)*(3*(GAMMA-1)*chi + 2*c2s*sigma
+			       - v_R*v_R*L*(GAMMA+1))
+		   -2*R*c2s*omega_k_prime(R)*(F*ALPHA*ALPHA*c2s*(GAMMA-1)
+					      - v_R*v_R*GAMMA));
   return numerator/denominator;
 }
 
 double get_c2s_prime(double R, double v_R, double c2s, double omega) {
-  double numerator, denominator;
-  denominator = get_ode_denominator(R,v_R,c2s,omega);
-  numerator = R*omega_k_prime(R)*(pow(v_R,4) - pow(c2s,2)*F*pow(ALPHA,2))
-    + omega_k(R)*(pow(R*omega,2)*(c2s*F*pow(ALPHA,2) - v_R*v_R)
-		  - v_R*v_R*(v_R*v_R + 2*F*ALPHA*v_R*R*omega
-			    + c2s*F*pow(ALPHA,2))
-		  + 2*F*ALPHA*c2s*(ALPHA*c2s + v_R*R*omega)
-		  - pow(R*omega_k(R),2)*(c2s*F*pow(ALPHA,2) - v_R*v_R));
+  double numerator,denominator,psi,chi,L,xi,prefactor;
+  denominator = get_gamma(R,v_R,c2s,omega);
+  set_psi_chi(psi,chi,c2s);
+  L = get_L(R,omega);
+  xi = pow(v_R,2) - 2*F*ALPHA*R*v_R*omega + L;
+  prefactor = (GAMMA-1)*c2s;
+  numerator = prefactor*(omega_k(R)*(2*chi +
+				     F*psi*(ALPHA*L
+					    + 2*R*v_R*omega
+					    - ALPHA*v_R*v_R)
+				     + v_R*v_R*xi)
+			 - R*omega_k_prime(R)*(chi - pow(v_R,4)));
   return numerator/denominator;
 }
 
 double get_omega_prime(double R, double v_R, double c2s, double omega) {
-  double numerator,denominator;
-  denominator = R*get_ode_denominator(R,v_R,c2s,omega);
-  numerator = v_R*(omega_k(R)*(c2s*(4*ALPHA*c2s + 4*v_R*R*omega)
-			       - v_R*v_R*ALPHA*c2s
-			       - 2*R*omega*pow(v_R,3)
-			       + ALPHA*c2s*R*R*(pow(omega,2)
-						- pow(omega_k(R),2)))
-		   - 2*ALPHA*c2s*R*omega_k_prime(R));
+  double numerator,denominator,psi,chi,L,lambda;
+  denominator = 2*R*get_gamma(R,v_R,c2s,omega);
+  set_psi_chi(psi,chi,c2s);
+  L = get_L(R,omega);
+  lambda = ALPHA*v_R*v_R*(GAMMA - 3)
+    + 4*R*omega*v_R*GAMMA
+    + ALPHA*L*(3*GAMMA - 1);
+  numerator = -v_R*(omega_k(R)*(4*ALPHA*c2s*c2s*GAMMA
+				+ c2s*lambda
+				- 2*R*pow(v_R,3)*omega*(GAMMA+1))
+		   -2*ALPHA*R*c2s*omega_k_prime(R)*(c2s*GAMMA
+						    +v_R*v_R*(GAMMA-1)));
   return numerator/denominator;
 }
 // ----------------------------------------------------------------------
@@ -206,7 +226,13 @@ double get_dissipated_energy(double R, double v_R, double c2s,
   return get_outward_torque(R,v_R,c2s,omega_prime)*omega_prime/(4*M_PI*R);
 }
 double get_temperature(double R, double v_R, double c2s, double omega_prime) {
-  double j = (1-F)*get_dissipated_energy(R,v_R,c2s,omega_prime);
+  double j = -(1-F)*get_dissipated_energy(R,v_R,c2s,omega_prime);
+  /*
+  if (DEBUGGING) {
+    std::cout << "\tj = " << j << std::endl;;
+    std::cout << "\tT = " << pow(j/SIGMA_B,0.25) << std::endl;
+  }
+  */
   return pow(j/SIGMA_B,0.25);
 }
 // nu is the frequency of the light. In Hz. 
@@ -233,6 +259,16 @@ double Integrator::operator()(double x) {
   initialize_integrator(x);
   integrator.integrate(max_t);
   double output = evaluate_speed_condition();
+  dVector data;
+
+  if (DEBUGGING) {
+    data = integrator.get_y();
+    std::cout << "Data: "
+	      << "\tv_R: " << data[0] << "\n"
+	      << "\tc_s: " << data[1] << "\n"
+	      << "\tomega: " << data[2] << "." << std::endl;
+  }
+
   return output;
 }
 
@@ -262,6 +298,10 @@ void Integrator::initialize_integrator(double Rs) {
 
 double Integrator::evaluate_speed_condition() {
   return speed_condition(integrator);
+}
+
+double Integrator::evaluate_angular_condition() {
+  return angular_derivative_condition(integrator);
 }
 //----------------------------------------------------------------------
 

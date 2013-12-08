@@ -1,6 +1,6 @@
 // accretion_spectum_main.cpp
 
-// Time-stamp: <2013-12-05 17:00:42 (jonah)>
+// Time-stamp: <2013-12-07 19:02:14 (jonah)>
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
 
 // This is the main loop for the accretion spectrum solver.
@@ -29,8 +29,8 @@ int main() {
        << endl;
 
   // Initial guesses for max and min values of Rs
-  double r_s_min = 2.5*R_G;
-  double r_s_max = 2.5*1E2*R_G;
+  double r_s_min = 1E1*R_G;
+  double r_s_max = 2.5*1E6*R_G;
 
   // Helpful message
   cout << "Bounds on sonic point:\n"
@@ -52,11 +52,15 @@ int main() {
   // satisfied
   while ( !angular_momentum_condition_satisfied ) {
     Rs = bisection_root_finder(rk_integrator, r_s_min, r_s_max);
+
     angular_momentum_condition_satisfied
       = abs(angular_derivative_condition(rk_integrator.integrator))
       < ROOT_ERROR;
+    cout << "\tMy guess at sonic point: " << Rs << endl;
+    cout << "\tBut we still need to test if both boundary conditions\n"
+	 << "\tare satisfied." << endl;
     if ( !angular_momentum_condition_satisfied ) {
-      r_s_max = Rs;
+      r_s_max = 0.9*Rs;
     }
   }
   // Helpful message.
