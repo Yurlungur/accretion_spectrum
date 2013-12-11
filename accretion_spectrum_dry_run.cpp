@@ -1,6 +1,6 @@
 // accretion_spectrum_dry_run.cpp
 
-// Time-stamp: <2013-12-08 15:27:39 (jonah)>
+// Time-stamp: <2013-12-08 20:34:43 (jonah)>
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
 
 // This is a sort of "test run" for the accretion spectrum solver. We
@@ -43,6 +43,8 @@ int main() {
   double my_v_R_prime,my_c2s_prime,my_omega_prime;
   dVector initial_data;
   dVector optional_args;
+  dVector test_vector;
+  dVector test_output;
   Integrator rk_integrator;
   RKF45 test_integrator;
   std::ofstream file;
@@ -120,6 +122,14 @@ int main() {
 	 << angular_test_results[i] << endl;
   }
   file.close();
+
+  cout << "Testing -1 method." << endl;
+  test_vector.push_back(1);
+  test_vector.push_back(1);
+  test_output = -test_vector;
+  cout << "-[1,1] = ["
+       << test_output[0] << ", " << test_output[1]
+       << "]." << endl;
 
   return 0;
 }

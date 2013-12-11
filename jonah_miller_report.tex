@@ -1,0 +1,1634 @@
+\documentclass[]{article}
+% Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
+% Time-stamp: <2013-12-08 22:19:24 (jonah)>
+
+% packages
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{mathrsfs}
+\usepackage{verbatim}
+\usepackage{braket}
+\usepackage{listings}
+\usepackage{pdfpages}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{hyperref}
+
+% for the picture environment
+\setlength{\unitlength}{1cm}
+
+% float controls
+% \usepackage{float}
+% \floatstyle{boxed}
+% \restylefloat{figure}
+
+%preamble
+\title{An Exploration of the Temperature of an Accretion Disk Around a
+  Pseudo-Newtonian Black Hole}
+
+\author{Jonah Miller\\
+  \textit{jonah.maxwell.miller@gmail.com}} 
+
+\date{Fundamentals of
+  Astrophysics\\ Niayesh Afshordi\\ Fall 2013}
+
+% Macros
+\newcommand{\R}{\mathbb{R}} % Real number line
+\newcommand{\N}{\mathbb{N}} % Integers
+\newcommand{\eval}{\biggr\rvert} %evaluated at
+\newcommand{\myvec}[1]{\vec{#1}} % vectors for me
+% total derivatives 
+\newcommand{\diff}[2]{\frac{d #1}{d #2}} 
+\newcommand{\dd}[1]{\frac{d}{d #1}}
+% partial derivatives
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}} 
+\newcommand{\pdd}[1]{\frac{\partial}{\partial #1}} 
+% derivatives with respect to R.
+\newcommand{\dR}[1]{\frac{d #1}{dR}}
+\newcommand{\ddR}{\frac{d}{dR}}
+% comoving derivatives
+\newcommand{\Dt}[1]{\frac{D #1}{Dt}}
+\newcommand{\DDt}{\frac{D}{Dt}}
+% A 3 vector.
+\newcommand{\threevector}[3]{\left[\begin{matrix} #1\\ #2\\ #3 \end{matrix}\right]}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  We attempt to reproduce the work of Shafee et al. in their 2008
+  paper \cite{Shafee08} to measure the temperature of a thin accretion
+  disk. We consider a thin accretion disk around a pseudo-Newtonian
+  stellar black hole. By numerically solving the non-relativistic
+  hydrodynamics equations consistently, and assuming blackbody
+  radiation from the surface, we find the spectrum of the disk.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Einstein's theory of theory of general relativity predicts the
+formation of singularities known as black holes \cite{Wald}. The
+gravitational pull of a black hole is so strong that, once an object
+passes within a certain distance, known as the Schwarzschild radius,
+the object is inexorably pulled into the curvature singularity at the
+center of the black hole, never to be seen again \cite{Wald}. One
+might hope that these black holes are mathematical artifacts that one
+wouldn't really observe in nature. However, the singularity theorems
+of Hawking and Ellis demonstrate that, given reasonable assumptions on
+the makeup of matter in the universe, black holes are plentiful
+\cite{HawkingEllis}.
+
+Indeed, a number of astrophysical black holes have been observed, and
+their properties measured
+\cite{McClintock06,Liu08,Gou09,Frank}.\footnote{This is only a small
+  fraction of the literature on black hole observations.} And although
+this work will focus on astrophysical black holes, it is believed that
+every galaxy has a super-massive black hole at its center
+\cite{PadmanabhanTA}. A black hole's enormous gravity pulls many
+objects inwards towards the black hole and these form a disk of
+accreting matter \cite{Frank,Melia}. It is this ``accretion disk''
+(and the ultra-relativistic jets emerging from the poles of the black
+hole) that is most visible from Earth \cite{Frank,Melia}.
+
+To learn about an astrophysical black hole, we study the properties of
+the accretion disk and how they are related to the black hole. To do
+this, we need a reliable, predictive model that relates the black hole
+parameters\footnote{A black hole only has three possible parameters;
+  mass, charge, and spin. The No-Hair Theorem guarantees that every
+  black hole is completely defined by these three quantities
+  \cite{MisnerThorneWheeler}.} to the properties of the accretion
+disk. The fluid dynamics of accretion disks are extremely
+complicated. In full generality, one needs to simulate a highly
+nonlinear system of hyperbolic partial differential equations in (3+1)
+dimensions \cite{LehnerReview01, Ott08,Font08,
+  BucciantiniZanna13}.\footnote{There are many many more papers to
+  cite here. This is only a sampling.} However, this is
+computationally expensive and one can often extract useful data with a
+much simpler model.
+
+In their 2008 paper, Shafee and collaborators propose one such model
+\cite{Shafee08}, which is the continuation of a long history of models
+\cite{PBK81,MuchotrzebPaczynski82,Kato88a,Abramowicz88,PophamNarayan91,NarayanPopham93,ChenTaam93,NarayanYi94,Narayan97,Chen97,AfshordiPaczynski03}. The
+model uses fluid dynamics and a number of approximations to generate a
+nonlinear system of ordinary differential equations (ODEs), which must be
+solved numerically. In an effort to understand this model, and to
+generate an accessible discussion of accretion disk physics, we
+present the following attempt to reproduce Shafee et al.'s
+work. Ultimately, we aren't successful in reproducing the numerical
+results. However, we effectively reproduce the analytic system that
+must be solved numerically, and we believe our numerical failure is
+interesting in its own right.
+
+In section \ref{sec:background}, we introduce some key concepts from
+accretion disk physics that we need to understand Shafee et al.'s
+model. This includes Keplerian motion, fluid dynamics, and the
+$\alpha$ prescription of Shakura and Sunyaev. In section
+\ref{sec:the:model}, we present a derivation of the boundary-value
+problem that Shafee et al. solve numerically. We discuss the
+approximation of a black hole using a Pseudo-Newtonian potential. We
+discuss how the equations of mass, energy, and momentum conservation
+result in an ODE system that we want to solve. And we discuss how to
+generate boundary data. In section \ref{sec:numerical:approach}, we
+discuss our approach to numerically solving Shafee et al.'s ODE
+system, including methods and tests of our implementation. In section
+\ref{sec:results} we discuss the results of our numerical simulations
+and what approach might work better. Finally, in section
+\ref{sec:conclusion}, we offer some concluding remarks.
+
+\section{Background}
+\label{sec:background}
+
+In this section, we will discuss some typical features of accretion
+disk models, including Keplerian motion, the fluid dynamics required
+to develop models of accretion disks and the so-called $\alpha$
+prescription.
+
+\subsection{Keplerian Motion}
+\label{subsec:keplerian:motion}
+In the context of accretion disks, Keplerian motion means circular
+motion. Given an arbitrary spherically symmetric potential $\Phi$, we
+derive the angular velocity of a circular orbit, also called the
+``Keplerian angular velocity,'' here.
+
+Suppose we have a test particle in our potential $\Phi$. Then the
+acceleration due to gravity on the particle is
+\begin{equation}
+  \label{eq:acceleration:due:to:gravity}
+  g = -\myvec{\nabla}\Phi \hat{R},
+\end{equation}
+where $\hat{R}$ is the radial direction. However, if the orbit is
+circular, we know that the centripetal acceleration must be
+\begin{equation}
+  \label{eq:centripetalacceleration}
+  a_c = -R \Omega_K^2,
+\end{equation}
+where $R$ is the radius and $\Omega_K$ is the Keplerian angular
+velocity. If we set these quantities equal to each other, we find that
+\begin{equation}
+  \label{eq:keplerian:angular:velocity}
+  \Omega_K = \sqrt{\frac{-\myvec{\nabla}\Phi}{R}}\hat{z},
+\end{equation}
+where $\hat{z}$ is perpendicular to the orbital plane.
+
+\subsection{Fluid Dynamics}
+\label{subsec:fluid:dynamics}
+
+We model accretion disks as fluids orbiting a central compact object,
+so we must also discus fluid dynamics. In this discussion, we borrow
+mostly from \cite{Melia} and \cite{Thompson}. First, let us define the
+following functions of the radius $R$:
+\begin{eqnarray}
+  \label{eq:variable:definitions:1}
+  \rho &\text{ is the density of the fluid}\\
+  \label{eq:variable:definitions:2}
+  \myvec{v}&\text{ is the velocity field of the fluid}\\
+    \label{eq:variable:definitions:3}
+  v_R &\text{ is the radial velocity}\\
+    \label{eq:variable:definitions:4}
+  P &\text{ is the total pressure in the fluid}\\
+    \label{eq:variable:definitions:5}
+  c_s &\text{ is the speed of sound}\\
+    \label{eq:variable:definitions:6}
+  \Omega &\text{ is the angular velocity}\\
+    \label{eq:variable:definitions:7}
+  \Omega_K &\text{ is the angular velocity for a text particle in a Keplerian orbit}\\
+    \label{eq:variable:definitions:8}
+  H &\text{ is one half the vertical thickness of the disk.}\\
+    \label{eq:variable:definitions:9}
+  \dot{M} &\text{ is the accretion rate of the black hole.}
+\end{eqnarray}
+
+The equations of fluid dynamics encode conservation laws. Therefore,
+we want to discuss the change in time of energy, mass, and
+momentum. One important issue in formalizing these equations is that
+we want to discuss the change due to the internal dynamics of the
+fluid and due to the motion of the fluid as a whole. This leads us to
+the comoving derivative\footnote{Also called the Lagrangian
+  derivative} \cite{Thompson},
+\begin{equation}
+  \label{eq:comoving:derivative}
+  \DDt = \pdd{t} + \myvec{v}\cdot\myvec{\nabla}.
+\end{equation}
+Now, encoded in the language of fluid dynamics, the conservation of
+mass law, also called the continuity equation, is written as
+\cite{Melia,Thompson}
+\begin{equation}
+  \label{eq:continuity:1}
+  \Dt{\rho} + \rho\myvec{\nabla}\cdot\myvec{v} = 0.
+\end{equation}
+The equation of conservation of momentum can be written as
+\begin{equation}
+  \label{eq:momentum:conservation:1}
+  \rho \Dt{\myvec{v}} = -\myvec{\nabla} P + \rho \Omega^2 \myvec{r} + \rho \myvec{\nabla}\cdot\sigma,
+\end{equation}
+where $\myvec{r}$ is the standard position vector and $\sigma$ is the
+stress tensor \cite{Melia,Thompson,WikiNavierStokes}. In this form,
+equation \eqref{eq:momentum:conservation:1} is just a restatement of
+Newton's second law. Later, we will see that, just as Newton's second
+law can be broken into linear and angular parts, this equation can be
+broken into two pieces, a linear momentum conservation law, and an
+angular momentum conservation law.
+
+Energy conservation is a little different. We actually have two
+coupled energy conservation laws: one for mechanical energy and one
+for thermal energy \cite{Melia,Thompson}. The mechanical energy
+equation is \cite{Thompson}
+\begin{equation}
+  \label{eq:mechanical:energy}
+  \DDt\left(\frac{1}{2}\myvec{v}^2\right) = - \frac{1}{\rho}\myvec{v}\cdot\myvec{\nabla} P + \myvec{v}\cdot\myvec{f}.
+\end{equation}
+This just tells us that the rate of change of kinetic energy per unit
+volume is the same as the work done per unit volume on the fluid. The
+thermal energy equation is written as
+\begin{equation}
+  \label{eq:thermal:energy:conservation}
+  \Dt{U} = \frac{P}{\rho^2} \Dt{\rho} + q^+ - q^- - \frac{1}{\rho}\myvec{\nabla}\cdot (k\myvec{\nabla}T),
+\end{equation}
+where $U$ is the internal energy per unit volume, $q^+$ and $q^-$ are
+the rates of heating and cooling in the fluid, most often generated by
+viscosity and radiation respectively, $k$ is the thermal conductivity
+of the fluid, and $T$ is the internal temperature. Therefore, the last
+term is the heat flux out of a unit volume of fluid \cite{Thompson,WikiFluids}. We can also write equation \eqref{eq:thermal:energy:conservation} in
+terms of the entropy per unit mass $s$ \cite{Shafee08}
+\begin{equation}
+  \label{eq:entropy:conservation}
+  \rho T \Dt{s} = q^+ + q^- = f q^+,
+\end{equation}
+where 
+\begin{equation}
+  \label{eq:def:f}
+  f = 1 - \frac{q^-}{q^+}.
+\end{equation}
+
+To solve these equations, one typically adds a relationship between
+density and pressure, called an equation of state. The speed of sound
+is usually defined as the adiabatic derivative
+\begin{equation}
+  \label{eq:def:sound:speed}
+  c_s^2 = \left(\diff{\rho}{P}\right)_s,
+\end{equation}
+where $s$ is constant \cite{Thompson,WikipediaSpeedOfSound}.
+
+In the case of accretion disks, we will limit ourselves to the
+following reasonable equation of state \cite{Shafee08,Frank,Melia}
+\begin{equation}
+  \label{eq:p:rho:relation}
+  P = \rho c_s^2.
+\end{equation}
+Note that this is equivalent to assuming the bulk modulus is equal to
+the total pressure and using the Newton-Laplace equation to define the
+speed of sound \cite{WikipediaSpeedOfSound}.
+
+\subsection{The Problem of Angular Momentum Transport}
+\label{subsec:angular:momentum:transport}
+
+Now, let's talk about our fluid orbiting a Newtonian black hole. (We
+will substantially weaken this assumption later.) In the following
+discussion, we follow mostly \cite{Frank} and \cite{Melia}. However,
+the original derivation is by Shakura and Sunyaev
+\cite{ShakuraSunyaev73}.
+
+Our first task is to describe how our black hole eats. In-falling
+matter was most likely captured traveling tangential to the black
+hole, not right towards it. This means that, in the center of mass
+frame (essentially the frame of the black hole), the in-falling matter
+carries angular momentum. Over time, may collisions with other
+in-falling matter will cause the an in-falling particle to lose
+vertical velocity, but the angular momentum to remains. Figure
+\ref{fig:capture} shows the path of one such in-falling particle. The
+particle passes the black hole with a velocity vector tangent to it
+(red), so that in the frame of the black hole, the particle carries
+angular momentum (blue). However, the black hole's gravitational pull
+(green) captures the particle, which enters an off-axis, elliptical
+orbit. Over time, collisions with other in-falling matter will remove
+the vertical component of the momentum of the particle, but the
+angular momentum is conserved.
+\begin{figure}[htb]
+  \begin{center}
+    \leavevmode
+    \includegraphics[scale=0.5]{../figures/capture.png}
+    \caption[Capture of an in-falling particle]{Capture of an
+      in-falling particle by a black hole. The particle passes the
+      black hole with initial velocity tangent to the black hole
+      (red). In the rest frame of the black hole, the particle
+      carries angular momentum (blue). However, the acceleration due
+      to the black hole's gravitational field (green) pulls the
+      particle into an off-axis elliptical orbit. Over time,
+      collisions with other in-falling particles circularize the orbit
+      and remove the vertical component of the particle's velocity,
+      leaving only the tangential in-plane velocity (purple). But the
+      angular momentum remains.}
+      \label{fig:capture}
+  \end{center}
+\end{figure}
+
+However, if every particle in the disk possesses sufficient angular
+momentum, then the black hole cannot feed. To see this, we write the
+energy of a particle as a function of radius, angular momentum, and
+radial velocity of the particle,
+\begin{eqnarray}
+  \label{eq:energy:particle}
+  E &=& \frac{1}{2}m\myvec{v}^2 - \frac{G M m}{R}\\
+  &=& \frac{1}{2}m v_R^2 - \frac{G M m}{R} + \frac{L^2}{2I}\\
+  &\sim& \frac{1}{2}m v_R^2 - \frac{G M m}{R} + \frac{L^2}{R^2}.
+\end{eqnarray}
+where $M$ is the mass of the black hole, $m$ is the mass of the
+particle, $\myvec{v}$ is the velocity of the particle, $v_R$ is the
+radial velocity of the particle, $I$ is the moment of inertia of the
+particle, $L$ is the angular momentum of the particle, and $R$ is the
+radius \cite{ThortonMarion}.\footnote{We assume a Newtonian black hole
+  here, but the same intuition holds in the case of a pseudo-Newtonian
+  black hole too.}
+
+Since the latter two terms are functions only of $R$, not its
+conjugate variables, we can write them together as an ``effective
+potential.'' Then the energy is the sum of the radial kinetic part and
+the effective potential parts. If we plot the effective potential, as
+in figure \ref{fig:effective:potential}, we find that it diverges as
+$R\to 0$. This means that a particle needs an infinite radial kinetic
+energy to reach the origin. For the black hole to eat, it must find
+some mechanism to deplete the angular momentum of particles nearest
+the event horizon.
+
+\begin{figure}[htb]
+  \begin{center}
+    \leavevmode
+    \includegraphics[scale=0.4]{../figures/effective_potential.png}
+    \caption[The effective potential of a particle in a rotating
+    reference frame]{The effective potential of a particle in a
+      rotating reference frame. The potential diverges as the radius
+      approaches zero.}
+      \label{fig:effective:potential}
+  \end{center}
+\end{figure}
+
+So what is the mechanism behind the angular momentum transfer? If
+slower moving particles exerted a ``drag'' force on faster-moving
+particles, we could get the effect we need. The Keplerian angular
+velocity of a particle is inversely proportional to the radius, so
+particles closer in are moving faster, and they would feel a drag
+torque due to the particles further out. This torque would allow
+angular momentum to be transferred radially outwards as mass and
+energy were transferred radially inward
+\cite{Frank,Melia,ShakuraSunyaev73}.
+
+Viscosity exerts a force that suits our needs. However, astrophysical
+fluids do not have strong enough inter-particle interactions to
+justify viscosity
+\cite{PadmanabhanTA,Melia,ShakuraSunyaev73}. Therefore, we need an
+effective viscosity that fills the same role in the stress tensor in
+equation \eqref{eq:momentum:conservation:1}.
+
+Shakura and Sunyaev proposed that the a shear stress---and thus
+angular momentum transport---could be caused by turbulent motion in
+the particles in the disk \cite{ShakuraSunyaev73}, although didn't
+propose a source for this turbulence. Balbus and Hawley proposed the
+magneto-rotational instability (MRI) as a source for this turbulence
+\cite{VanBommel,BalbusHawley1,BalbusHawley2,BalbusHawley3,BalbusHawley4},
+and numerical simulations seem to demonstrate that an effective
+viscosity is induced by turbulence due to magnetic fields
+\cite{Melia,LehnerReview01,Font08,BucciantiniZanna13,HawleyGammieBalbus95,HawleyGammieBalbus96}.
+
+It is worth noting that this is not the only possible source of
+angular momentum transport in a disk. It is possible, for instance,
+that radially-dependent magnetic fields could create a ``magnetic
+pressure'' which non-locally transports angular momentum in the
+appropriate way \cite{Frank,PadmanabhanTA,ShakuraSunyaev73}. Shakura
+and Sunyaev originally included magnetic pressure in their
+calculation, and we can likely safely treat it as included in the
+$\alpha$ prescription described below \cite{ShakuraSunyaev73}.
+
+\subsection{The Alpha Prescription}
+\label{subsec:the:alpha:prescription}
+
+We now describe how Shakura and Sunyaev use turbulent motion to attain
+a shear viscosity \cite{Frank,Melia,ShakuraSunyaev73}. As we discussed
+in section \ref{subsec:angular:momentum:transport}, orbits in the
+accretion disk tend to circularize. If they are around a Newtonian
+black hole with the standard $1/R^2$ potential, the orbits will be
+Keplerian \cite{Frank,Melia,ShakuraSunyaev73}. Let's consider two
+neighboring rings of fluid in the accretion disk which follow such
+orbits. Call them ring $A$ and ring $B$. Let ring $A$ be at radius $R$
+with angular velocity $\Omega(R)$ and let ring $B$ be at radius
+$R+\lambda$ with angular velocity $\Omega(R+\lambda)$, as shown in
+figure \ref{fig:disk:neighboring:rings}.
+
+\begin{figure}[htb]
+  \begin{center}
+    \leavevmode
+    \begin{picture}(11,4)
+      \put(0,0){\includegraphics[scale=0.6]{../figures/accretion_disk_alpha_approximation.pdf}}
+      \put(3,0.1){\huge $A$}
+      \put(10.6,0.1){\huge $B$}
+      \put(0.9,1.1){\LARGE $ba$}
+      \put(7.95,0.35){\LARGE $ab$}
+      \put(4.5,1.4){\large $v_\phi^{A} = R\Omega(R)$}
+      \put(3.5,2.9){\large $v_\phi^{B} = (R+\lambda)\Omega(R+\lambda)$}
+    \end{picture}
+  \end{center}
+  \caption[Turbulence as shear viscosity]{Turbulence as shear
+    viscosity. Two rings in the accretion disk near radius $R$. A
+    clump of matter from ring $A$ moves to $B$. Call it $ab$. Because
+    the fluid is in equilibrium, at the same time, a clump of matter
+    from ring $B$ moves to ring $A$. Call it $ba$. Ring $A$ moves with
+    azimuthal velocity $v_\phi^A = R\Omega(R)$. Ring $B$ moves with
+    azimuthal velocity $v_\phi^B = (R+\lambda
+    \Omega(R+\lambda)$. Image inspired by those in
+    \cite{Frank,Melia}.}
+  \label{fig:disk:neighboring:rings}
+\end{figure}
+
+Because of turbulence, clumps of fluid travel between the rings at
+random, each one carrying angular momentum. Since the fluid
+is in local hydrodynamic equilibrium, the net flow of clumps is
+zero---there are as many clumps moving radially outward as there are
+moving radially inward \cite{Frank,Melia}. Each clump travels a
+distance of approximately $\lambda$ at a radial speed of
+$\tilde{v}$. Each clump has a tangential velocity equal to its radius
+times its angular velocity. Let's consider two such clumps. One going
+from ring $A$ to ring $B$, call it $ab$ and one going from ring $B$ to
+ring $A$, call it $ba$. $ab$ has tangential velocity $v_\phi^{A} =
+R\Omega(R)$ and $ba$ has tangential velocity
+$v_\phi^{B}=(R+\lambda)\Omega(R+\lambda)$ \cite{Frank,Melia}.
+
+As a simplifying assumption, we let the tangential linear angular
+momentum be conserved.\footnote{If we had instead allowed the angular
+  momentum to be conserved, we still would get angular momentum
+  transport radially outward, which is what we want \cite{Frank}.}
+Then the tangential linear momentum flux per unit arc length at a
+constant radius $R+\lambda/2$ in the outward direction is \cite{Frank}
+\begin{eqnarray}
+  \Phi_\phi^{AB} &=& 2\rho \tilde{v} H (R+\lambda) v_\phi^A\nonumber\\
+  \label{eq:tangential:linear:momentum:flux:outward}
+  &=& 2\rho \tilde{V} H (R+\lambda)R\Omega(R),
+\end{eqnarray}
+where $H$ is the height of the disk, as in equation
+\eqref{eq:variable:definitions:9}. Similarly, the inward flux is
+\cite{Frank}
+\begin{equation}
+  \label{eq:tangential:linear:momentum:flux:inward}
+  \Phi_\phi^{BA} = 2\rho\tilde{v} H R (R+\lambda) \Omega(R+\lambda).
+\end{equation}
+Thus the torque on the outer ring by the inward ring is given by the
+net (outward) flux, which we can approximate as the sum of equations
+\eqref{eq:tangential:linear:momentum:flux:outward} and
+\eqref{eq:tangential:linear:momentum:flux:inward}. In the small
+$\lambda$ limit, the difference in angular momenta becomes a
+derivative and we get \cite{Frank,Melia}
+\begin{equation}
+  \label{eq:torque:AB}
+  \tau_{AB} = -\rho\tilde{v}H\lambda R^2 \dR{\Omega(R)}.
+\end{equation}
+Notice that the torque goes to zero in the case of rigid motion where
+$\dR{\Omega}$ is zero. Furthermore, if the angular velocity decreases
+radially, then the torque outward is positive, transporting angular
+momentum radially outward \cite{Melia}. These are the limits we want.
+
+Then the azimuthal shear stress, or the force in the azimuthal
+direction per unit area:
+\begin{equation}
+  \label{eq:azimuthal:shear:stress}
+  T_{\phi} = \rho\tilde{v}\lambda R\dR{\Omega(R)}.
+\end{equation}
+Or, the only non-zero component of the stress tensor is the
+radial-azimuthal component.
+\begin{equation}
+  \label{eq:stress:tensor:nonzero:1}
+  \sigma_{R\phi} = \rho\tilde{v}\lambda R\dR{\Omega(R)}.
+\end{equation}
+
+We don't know the details of $\lambda$ or $\tilde{v}$, so we must make
+some guesses. The motion of the clumps comes from turbulence, and the
+turbulent eddies are unlikely to be larger than the disk height. So we
+know \cite{Frank,Melia}
+\begin{equation}
+  \label{eq:lambda:bound}
+  \lambda \leq H.
+\end{equation}
+Similarly, it is unlikely that the clumps are moving greater than the
+speed of sound. So we know that \cite{Frank,Melia}
+\begin{equation}
+  \label{eq:v:tilde:bound}
+  \tilde{v} \leq c_s.
+\end{equation}
+We then parametrize our lack of knowledge about $\lambda$ and
+$\tilde{v}$ by the parameter $\alpha \in [0,1]$ \cite{Frank,Melia}
+\begin{equation}
+  \label{eq:stress:tensor:nonzero:alpha}
+  \sigma_{R\phi} = \alpha \rho c_s H R\dR{\Omega(R)}.
+\end{equation}
+This is the famous $\alpha$ prescription of Shakura and Sunyaev
+\cite{ShakuraSunyaev73}. It's important to note, however, that we've
+simply hidden what we don't know inside the $\alpha$ parameter, which
+we determine numerically. We haven't explained what $\alpha$ should be
+\cite{Frank,Melia}. In the language of mechanical viscosity, this
+description becomes
+\begin{equation}
+  \label{eq:alpha:prescription:viscosity}
+  v = \tilde{v}\lambda = \alpha c_s H.
+\end{equation}
+
+Shakura and Sunyaev actually took this a little further. They argued
+that the azimuthal velocity is approximately constant and thus
+\begin{equation}
+  \label{eq:omega:dependence:constant:vphi}
+  \dR{\Omega} \approx - \frac{1}{R} \Omega.
+\end{equation}
+This isn't as crazy as it sounds, since it is approximately true in the
+Keplerian case \cite{ShakuraSunyaev73,ThortonMarion}. Now, in the
+case of a Newtonian potential, it is easy to show that, up to factors
+of order 1,
+\begin{equation}
+  \label{eq:H:def}
+  H = \frac{c_s}{\Omega_K}
+\end{equation}
+(see appendix \ref{app:H:relation}). If the orbits are all Keplerian
+anyway, then 
+$$H = \frac{c_s}{\Omega}$$
+and we can use equations \eqref{eq:omega:dependence:constant:vphi} and
+\eqref{eq:stress:tensor:nonzero:alpha} to find
+\begin{equation}
+  \label{eq:alpha:prescription:rho}
+  \sigma_{R\phi} = -\alpha \rho c_s^2.
+\end{equation}
+Or, if we use equation \eqref{eq:p:rho:relation} \cite{Shafee08},
+\begin{equation}
+  \label{eq:alpha:prescription:P}
+  \sigma_{R\phi} = -\alpha P.
+\end{equation}
+
+\subsection{Radiation}
+\label{subsec:radiation}
+
+Let's return to the outward torque we calculated in section
+\ref{subsec:the:alpha:prescription}. The torque is radius dependent,
+so we can write \cite{Frank,Melia}
+\begin{equation}
+  \label{eq:d:tau}
+  \tau_{out}(R) - \tau_{out}(R+dR) = - \dR{\tau_{out}}dR,
+\end{equation}
+where $\tau_{out}$ is just $\tau_{AB}$ from equation
+\eqref{eq:torque:AB} rewritten with $\alpha$,
+\begin{equation}
+  \label{eq:tau:out}
+  \tau_{out}(R) = -\alpha\rho c_s H^2 R^2 \dR{\Omega(R)}.
+\end{equation}
+Then the power dissipated by this infinitesimal torque is
+\cite{Frank,Melia}
+\begin{equation}
+  \label{eq:power:dissipated}
+  P = -\Omega \dR{\tau_{out}} dR.
+\end{equation}
+But by the product rule,
+\begin{equation}
+  \label{eq:product:rule:tau}
+  \ddR(\tau_{out}\Omega) = \Omega \dR{\tau_{out}} + \tau \dR{\Omega}.
+\end{equation}
+So \cite{Melia}, 
+\begin{equation}
+  \label{eq:P:pieces}
+  P = - \left[ \ddR (\tau_{out}\Omega) - \tau_{out}\dR{\Omega}\right]dR.
+\end{equation}
+The first term gives the transfer of rotational energy from the inner
+radius of the disk to the outer radius of the disk \cite{Melia}. If we
+integrate this term, we simply get the difference in rotational energy
+between the inner-most ring at $R_{inner}$ and the outer ring at
+$R_{outer}$ \cite{Melia}:
+\begin{equation}
+  \label{eq:difference:rotational:energy}
+  \int_{R_{inner}}^{R_{outer}} \ddR(\tau_{out}\Omega)dR = \tau_{out}\Omega\eval_{R_{outer}} - \tau_{out}\Omega\eval_{R_{inner}}.
+\end{equation}
+The other term, however, represents the local dissipation of energy
+into heat \cite{Melia}. Ultimately, this energy will be radiated by
+the upper and lower faces of the disk, so in anticipation of a
+luminosity calculation, we define the energy dissipated per time per
+unit plane area. Each ring of the disk is at radius $R$ with
+circumference $2\pi R$ and width $d$. And it has two surfaces. So we
+have a unit plane area of
+\begin{equation}
+  \label{eq:unit:plane:area}
+  4\pi R dR
+\end{equation}
+and dissipated energy per unit area per time of \cite{Frank,Melia}
+\begin{equation}
+  \label{eq:def:D(R)}
+  D(R) = \frac{\tau_{out}}{4\pi R}\dR{\Omega}.
+\end{equation}
+
+The luminosity per unit area at a given radius will be defined by the
+cooling rate of the fluid (see equation \eqref{eq:def:f}) times
+$D(R)$ \cite{Shafee08}:
+\begin{equation}
+  \label{eq:radiant:power:disk}
+  j^*(R) = (1-f) D(R).
+\end{equation}
+We can use the Stefan-Boltzmann law to solve for the ``effective
+temperature'' of the disk at a given radius:
+\begin{equation}
+  \label{eq:stefan:boltzmann:law}
+  j^*(R) = \sigma_B T^4(R) \text{ with } \sigma_B = \frac{2\pi^5 k_B}{15c^2 h^3},
+\end{equation}
+where $k_B$ is Boltzmann's constant, $c$ is the speed of light in
+vacuum, and $h$ is Planck's constant \cite{Melia}. If we assume
+blackbody radiation, this gives us the radiated spectrum at a given
+temperature. The intensity of a given frequency $\nu$ is
+\cite{TaylorZafiratosDubson}
+\begin{equation}
+  \label{eq:planck:spectrum}
+  I(\nu,R) = \frac{2 h\nu^3}{c^2} \frac{1}{e^{h\nu}{k_BT(R)}-1}.
+\end{equation}
+And, if we want the observed intensity, we average over every radius
+and adjust the normalization for distance $D_{EBH}$ and viewing angle
+$i$ \cite{Shafee08}:
+\begin{equation}
+  \label{eq:observed:spectrum}
+  F(\nu) = \frac{2\pi \cos(i)}{D_{EBH}^2} \int_{R_{inner}}^{R_{outer}} \frac{2 h \nu^3 R}{c^2 e^{h\nu/k_B T(R)} -1}dR.
+\end{equation}
+
+\section{The Shafee Model}
+\label{sec:the:model}
+
+Now we want to use the tools of section \ref{sec:background} to model a
+quasi-realistic accretion disk, where the fluid flow can go from
+subsonic velocities to supersonic velocities.
+
+In the standard approach, one can find the inner-most stable circular
+orbit (ISCO) around a fully-relativistic fixed Schwarzschild or Kerr
+black hole\footnote{It is perhaps a surprising feature of black holes
+  that they can have an inner-most stable circular orbit outside of
+  the event horizon \cite{Melia,Wald}.} and assume that the viscous
+torque, angular momentum loss, and energy dissipation are all zero
+within the ISCO \cite{Zhang97,Shafee06,McClintock06,Davis05}. From
+there one can use the hydrodynamics equations and a wide variety of
+boundary conditions to solve for the properties of an axisymmetric
+thin disk.
+
+To test whether or not it is valid to assume these boundary conditions
+at the ISCO, Shafee et al. developed a pseudo-Newtonian model that
+still captures some of the relativistic flavor and all of the
+trans-sonic flavor. The following analytic model of thin accretion
+disks was pioneered by Paczynski and Bisnovatyi-Kogan \cite{PBK81} and
+developed by many others
+\cite{Shafee08,MuchotrzebPaczynski82,Kato88a,Abramowicz88,PophamNarayan91,NarayanPopham93,ChenTaam93,Narayan97,Chen97,AfshordiPaczynski03}. It
+is less accurate than a fully relativistic simulation, but it is more
+accurate than the standard thin disk model \cite{Shafee08}. Since we
+are reproducing their results, we primary follow the treatment of
+Shafee et al. \cite{Shafee08} who were in turn guided by Narayan et
+al. \cite{Narayan97}.
+
+\subsection{The Pseudo-Newtonian Black Hole}
+\label{subsec:gravity}
+
+Because we want to avoid the extreme computational cost of a fully
+relativistic magnetohydrodynamics simulation, we will study a simple
+viscous fluid in a Newtonian gravitational potential. The standard
+disk model assumes the existence of an ISCO, and we would like to make
+contact with this notion. For that reason, we use a pseudo-Newtonian
+gravitational potential, which posses such a radius.
+
+Before we proceed, it is convenient to define the following quantities. Let
+\begin{eqnarray}
+  \label{eq:convenient:definitions}
+  R_g &=& \frac{GM}{c^2}\text{ is twice the Schwarzschild radius of the black hole}\\
+  \text{and }a_* &=& \frac{J c}{G M^2}\text{ s.t. }-1<a_*<1\text{ is the dimensional spin of the black hole},
+\end{eqnarray}
+where $M$ is the mass of the black hole, $J$ is the spin of the black
+hole, $c$ is the speed of light, and $G$ is Newton's
+constant.\footnote{We can write the spin of the black hole in
+  mass-energy terms as $a=a_* M$ \cite{Shafee08}.}
+
+So that we may include spin, we use Mukhopadhyay's pseduo-Kerr
+proposal \cite{Mukhopadhyay02}, where the acceleration due to gravity
+of a test particle in a Keplerian orbit at a distance $R$ from the
+black hole singularity is\footnote{We are writing all of the following
+  formulas in the notation of \cite{Shafee08}.}
+\begin{equation}
+  \label{eq:mukhopadhyay:g}
+  g = -\myvec{\nabla}\Phi = \frac{c^4}{GM} \frac{\left(r^2 - 2 a_* \sqrt{r} + a_*^2\right)^2}{r^2\left(\sqrt{r}(r-2)+a_*\right)^2},
+\end{equation}
+where $\Phi$ is the gravitational potential and $r=R/R_g$.
+
+When we work with the fluid dynamics, we will hide the effects of
+gravity in the Keplerian angular velocity at a given radius. (See
+section \ref{subsec:keplerian:motion}.) In Mukhopadhyay's model, this
+is \cite{Shafee08}:
+\begin{equation}
+  \label{eq:mukhopadhyay:omega:k}
+  \Omega_K = \frac{c^3}{GM}\frac{(r^2 - 2a_* \sqrt{r} + a_*^2)}{r^2\left(\sqrt{r}(r-2)+a_*\right)}.
+\end{equation}
+In the case that  $a_*=0$, the Keplerian angular velocity reduces to 
+\begin{equation}
+  \label{eq:PW80:omega:k}
+  \Omega_k = \frac{1}{R-2R_g}\sqrt{\frac{GM}{R}}.
+\end{equation}
+This is the Keplerian angular velocity associated with the
+gravitational potential proposed by Paczynski and Wiita, also known as
+the PW80 potential \cite{PW80}:
+\begin{equation}
+  \label{eq:PW80:phi}
+  \Phi = - \frac{GM}{R-2R_g}.
+\end{equation}
+We won't need equations \eqref{eq:mukhopadhyay:g} or
+\eqref{eq:PW80:phi}. All the information we need will be contained in
+equations \eqref{eq:mukhopadhyay:omega:k} and \eqref{eq:PW80:omega:k}.
+
+\subsection{The Accreting  Fluid}
+\label{subsec:hydro}
+
+To avoid the complexities of (3+1)-dimensional fluid dynamics, we
+assume axisymmetry and hydrostatic equilibrium for the fluid in the
+accretion disk. These assumptions are obviously not accurate, however
+more general simulations and some observational evidence suggest that
+in the case of a very thin disk, they are often good enough
+\cite{Shafee06,McClintock06,Liu08,Gou09,Penna10,PennaThesis}.
+
+Since we are assuming hydrostatic equilibrium, the co-moving
+derivative operator \eqref{eq:comoving:derivative} takes an especially
+simple form:
+\begin{equation}
+  \label{eq:comoving:derivative:2}
+  \DDt = \pdd{t} + \myvec{v}\cdot\myvec{\nabla} = v_R \dd{R},
+\end{equation}
+where $t$ is time \cite{Shafee08}. We also assume the $\alpha$
+prescription of of Shakura and Sunyaev \cite{ShakuraSunyaev73},
+specifically in the form of equation \eqref{eq:alpha:prescription:P}
+so that the only component of the viscous stress tensor is the
+radial-azimuthal shear stress, which is proportional to the
+pressure. Similarly, as a simplifying assumption we assume that the
+height is approximately the speed of sound divided by the Keplerian
+angular velocity as in equation \eqref{eq:H:def}.
+
+Now we will endeavor to solve the equations of hydrodynamics, which
+consist of a mass conservation equation \eqref{eq:continuity:1}, a
+momentum conservation equation \eqref{eq:momentum:conservation:1}, and
+an energy conservation equation, which we will write as an entropy
+conservation equation \eqref{eq:entropy:conservation}.
+
+Between radii $R$ and $R+\Delta R$, the mass is \cite{Melia}
+\begin{equation}
+  \label{eq:mass}
+  \text{mass} = 4 \pi R \rho H dR.
+\end{equation}
+If we differentiate this equation with respect to time, we find that
+\cite{Melia}
+\begin{equation}
+  \label{eq:continuity:2}
+  R \diff{4\pi\rho H}{t} + \ddR\left(4\pi R\rho H v_R\right) = 0.
+\end{equation}
+And, since we are in a steady state, we find that
+\begin{equation}
+  \label{eq:continuity:3}
+  \ddR\left(4\pi R\rho H v_R\right) = 0.
+\end{equation}
+If we integrate, we find that $-\pi R\rho H v_R$ is conserved with
+respect to the radius. We call this quantity our accretion rate,
+$\dot{M}$ such that
+\begin{equation}
+  \label{eq:continuity:final}
+  \dot{M} = -4\pi \rho v_R R H = \text{ constant.}
+\end{equation}
+This is the integrated form of the continuity equation defined in
+equation \eqref{eq:continuity:1} \cite{Shafee08,Melia}.
+
+% If we feed equation \eqref{eq:comoving:derivative:2} and axisymmetry
+% into the continuity equation (equation \eqref{eq:continuity:1}), we
+% have
+% \begin{equation}
+%   \label{eq:continuity:2}
+%   v_R \dR{\rho} +  \rho \dR{v_R} = 0.
+% \end{equation}
+% We can recognize this as a product rule and write
+% \begin{equation}
+%   \label{eq:continuity:3}
+%   \ddR (v_R \rho) = 0.
+% \end{equation}
+% If we integrate, we have
+% \begin{equation}
+%   \label{eq:continuity:4}
+%   v_R \rho = \text{constant}.
+% \end{equation}
+% We can also integrate over the thickness of the disk to find that
+% \begin{equation}
+%   \label{eq:continuity:5}
+%   2Hv_R \rho = \text{constant}.
+% \end{equation}
+% Finally, because the mass between two
+
+With the assumptions of axisymmetry, stead-state, and equations With
+the addition of equations \eqref{eq:keplerian:angular:velocity},
+\eqref{eq:p:rho:relation}, \eqref{eq:H:def} and
+\eqref{eq:alpha:prescription:P}, we can break the momentum
+conservation equation (equation \eqref{eq:momentum:conservation:1})
+into a radial part and an azimuthal part. The radial part becomes
+\cite{Shafee08}
+\begin{equation}
+  \label{eq:radial:momentum}
+  v_R \dR{v_R} = - (\Omega_K^2 - \Omega^2)R - \frac{1}{\rho}\ddR(\rho c_s^2).
+\end{equation}
+Rather than look at the azimuthal part, we impose conservation of
+angular momentum directly to find that \cite{Shafee08}
+\begin{equation}
+  \label{eq:angular:momentum:conservation}
+  \frac{\rho v_R}{R} \ddR (\Omega R^2) =  \frac{1}{R^2 H} \diff{d(R^2 H \sigma_{R\phi})}{dR},
+\end{equation}
+where $\Omega R^2$ is the angular momentum per unit mass of the disk at
+a given radius. This equation can be integrated to find that
+\begin{equation}
+  \label{eq:integrated:angular:momentum}
+  j = \Omega R^2 + \frac{\alpha c_s^2 R}{v_R},
+\end{equation}
+where $j$ is an integration constant \cite{Shafee08}. 
+
+To adapt the entropy equation (equation
+\eqref{eq:entropy:conservation}) to our needs, we recall that the
+heating of the gas is due to viscous dissipation (see equation
+\eqref{eq:def:D(R)}). This gives us that
+\begin{equation}
+  \label{eq:entropy:change:2}
+  \rho T \Dt{s} = - f \alpha \rho c_s^2 R \dR{\Omega},
+\end{equation}
+where here we used equations \eqref{eq:def:sound:speed} and
+\eqref{eq:tau:out} \cite{Shafee08}.
+
+Now we want to set the right-hand side of equation
+\eqref{eq:entropy:change:2} equal to the change in entropy of a
+comoving clump of gas in the disk.  To study our comoving clump of
+gas, we keep the mass of the gas fixed but allow the other
+thermodynamic quantities to vary. We will use the fundamental
+thermodynamic relation
+\begin{equation}
+  \label{eq:fundamental:thermodynamic:relation}
+  dU = T dS - P dV,
+\end{equation}
+where $U$ is the internal energy of the system, $S$ is the entropy of
+the system, and $V$ is the volume \cite{Schroeder}. If we reformulate
+this in the context of fluid dynamics, we have
+\begin{equation}
+  \label{eq:fundamental:thermodynamic:relation:fluids}
+  \rho T \Dt{s} = \Dt{\epsilon} + \frac{P}{V} \Dt{V},
+\end{equation}
+where $\epsilon$ is the energy per unit volume and $s$ is the entropy
+per unit mass (also called specific entropy).
+
+Let's look at the right-most term first. Because of equation
+\eqref{eq:comoving:derivative:2}, we have that
+\begin{equation}
+  \label{eq:Dt:V}
+  \frac{P}{V}\Dt{V} = v_R\frac{P}{V}\dR{V}.
+\end{equation}
+Now, because mass is held fixed, we can write a relationship between
+$\dR{\rho}$ and $\dR{V}$:
+\begin{eqnarray}
+  \dR{\rho} &=& \mu\ddR{V^{-1}}\nonumber\\
+  &=& -\mu V^{-2} \dR{V}\nonumber\\
+  \label{eq:d:rho:d:R}
+  \Rightarrow \frac{1}{V}\dR{V} &=& - \frac{1}{\rho}\dR{\rho},
+\end{eqnarray}
+where $\mu$ is the mass of the clump of gas. So, if we also use
+equation \eqref{eq:p:rho:relation}, equation \eqref{eq:Dt:V} becomes
+\begin{equation}
+  \label{eq:eq:Dt:V:final}
+  \frac{P}{V} \Dt{V} = - c_s^2 v_R \dR{\rho}.
+\end{equation}
+
+Now let's look at the $\Dt{\epsilon}$ term in equation
+\eqref{eq:fundamental:thermodynamic:relation:fluids}. This term should
+be independent of the volume, so we hold both mass and volume
+fixed. If we assume the ideal gas law for our fluid,
+\begin{equation}
+  \label{eq:idea:gas:law}
+  PV = N k_B T,
+\end{equation}
+where $V$ is volume and $N$ is the number of molecules
+\cite{Schroeder}, and we assume our gas has an adiabatic index
+$\gamma$,\footnote{We follow Shafee et al. and assume $\gamma=3/2$
+  \cite{Shafee08}.} then at a constant volume $V$, the heat capacity
+is
+\begin{equation}
+  \label{eq:heat:capacity}
+  C_V = \frac{N K_B}{\gamma - 1},
+\end{equation}
+and the thermal energy per unit volume is
+\begin{equation}
+  \label{eq:thermal:energy:per:unit:volume}
+  \epsilon = \frac{C_V T}{V} = \frac{P}{\gamma - 1}.
+\end{equation}
+So,
+\begin{equation}
+  \label{eq:derivative:energy:per:unit:volume}
+  \Dt{\epsilon} = \frac{v_R}{\gamma - 1} \left(\rho\dR{c_s^2} + c_s^2 \dR{\rho}\right).
+\end{equation}
+However, with mass and volume fixed, $\dR{\rho} = 0$ and we have that
+\begin{equation}
+  \label{eq:derivative:energy:per:unit:volume:final}
+  \Dt{\epsilon} = \frac{v_R\rho}{\gamma - 1}\dR{c_s^2}.
+\end{equation}
+
+Now we can combine equations
+\eqref{eq:fundamental:thermodynamic:relation:fluids},
+\eqref{eq:eq:Dt:V:final} and
+\eqref{eq:derivative:energy:per:unit:volume:final} to get the change
+in entropy for a clump of gas in the disk of fixed mass
+\cite{Shafee08,Narayan97}:
+\begin{equation}
+  \label{eq:entropy:conservation:heat:v:cool}
+  \rho T \Dt{s} = \frac{\rho v_R}{\gamma - 1} \dR{c_s^2} - c_s^2 v_R \dR{\rho}.
+\end{equation}
+And, finally, we set equations \eqref{eq:entropy:change:2} and
+\eqref{eq:entropy:conservation:heat:v:cool} equal to each other and we
+find the energy conservation equation for Shafee et al.'s model \cite{Shafee08}:
+\begin{equation}
+  \label{eq:energy:conservation:final}
+  \frac{\rho v_R}{\gamma - 1}\dR{c_s^2} - c_s^2 v_R \dR{\rho} = - f \alpha \rho c_s^2 R \dR{\Omega}.
+\end{equation}
+
+\subsection{The First-Order ODE System}
+\label{subsec:first:order:ODE:system}
+
+Other than boundary conditions, we've now written down all the
+ingredients of Shafee et al.'s model. It would be convenient to reduce
+the numerous equations we have to a system of ODES to solve for just a
+few functions of $R$. We use the definitions of the speed of sound \eqref{eq:p:rho:relation} and H \eqref{eq:H:def} and the continuity
+equation \eqref{eq:continuity:final} to reduce the variables in the
+radial \eqref{eq:radial:momentum} and angular
+\eqref{eq:angular:momentum:conservation} momentum and energy equations
+\eqref{eq:energy:conservation:final} to just $R$ and three functions
+of $R$: $v_R$, $c_s^2$, and $\Omega$. We find that
+\begin{eqnarray}
+  \label{eq:ODE:system:dv}
+  \ddR v_R &=& \frac{v_R}{2\Gamma} \left[\Omega_K \left(3 (\gamma-1) \chi + 2 c_s^2\Sigma - v_R^2 L (\gamma+1)\right)
+    -2 R c_s^2 \Omega_k' \left(f \alpha^2 c_s^2 (\gamma-1) - v_R^2\gamma\right)\right]\\
+  &&\nonumber\\
+  \label{eq:ODE:system:dc2s}
+  \ddR c_s^2 &=& \frac{(\gamma-1)c_s^2}{\Gamma}\left[\Omega_K\left(2\chi + f\psi\left(\alpha L 
+        + 2 R v_R\Omega -\alpha v_R^2\right) + v_R^2 \Xi\right)
+    - R \Omega_K'\left(\chi+v_R^4\right)\right]\\
+  &&\nonumber\\
+  \label{eq:ODE:system:domega}
+  \ddR \Omega &=& -\frac{v_R}{2\Gamma R}\left[\Omega_K \left(4\alpha (c_s^2)^2 \gamma +c_s^2\Lambda - 2 R v_R^3 \Omega(\gamma+1)\right) - 2\alpha R c_s^2 \Omega_K'\left(\gamma c_s^2 + v_R^2(\gamma-1)\right)\right]
+\end{eqnarray}
+with 
+\begin{eqnarray}
+  \label{eq:def:psi}
+  \psi &=& \alpha c_s^2\\
+  \label{eq:def:chi}
+  \chi &=& f\psi^2\\
+  \label{eq:def:L}
+  L &=& R^2\left(\Omega^2 - \Omega_K^2\right)\\
+  \label{eq:def:Xi}
+  \Xi &=& v_R^2 - 2 f \alpha R v_R \Omega + L\\ %v_R^2 + 2 f \alpha R v_R \Omega + L\\
+  \label{eq:def:sigma}
+  \Sigma &=& f\alpha R\Omega v_R(\gamma -1) -v_R^2 \gamma - f\alpha^2 (\gamma-1)L\\
+  \label{eq:def:lambda}
+  \Lambda &=& \alpha v_R^2(\gamma-3) + 4 R\Omega v_R \gamma + \alpha L \left(3\gamma - 1\right)\\
+  \label{eq:def:Gamma}
+  \Gamma &=&\frac{1}{2} R \Omega_K \left[2v_R^2\left(f\alpha^2 (\gamma -1)+\gamma\right) - \chi(\gamma-1) - v_R^4(\gamma+1)\right]
+\end{eqnarray}
+% \begin{eqnarray}
+%   \label{eq:ODE:system:dv}
+%   \ddR v_R &=& \frac{v_R\left[\Omega_K\left(v_R^2 R^2 \Omega^2 + c_s^2 (2 f \alpha v_R R \Omega + 2 v_R^2 + c_s^2 f \alpha^2) - v_R^2 R^2 \Omega_K^2\right) - 2 v_R^2 \Omega_k' R c_s^2\right]}{R\Omega_K\left[v_R^4 + c_s^2\left(f\alpha^2 c_s^2 - 2 v_R^2\right)\right]}\\
+%   &&\nonumber\\
+%   \label{eq:ODE:system:dc2s}
+%   \ddR c_s^2 &=& \frac{2 c_s^2}{R\Omega_K\left[v_R^4 + c_s^2\left(f\alpha^2 c_s^2 - 2 v_R^2\right)\right]}\left[R\Omega_K'(v_R^4 - c_s^4 f \alpha^2) + \Omega_K\left(R^2\Omega^2(c_s^2 f \alpha^2 -v_R^2)\right. \right.\\
+%   &&\qquad  \left. \left.- v_R^2 (v_R^2 + 2 f \alpha v_R R \Omega + c_s^2f\alpha^2) + 2 f \alpha c_s^2 (\alpha c_s^2 + v_R R \Omega) - R^2 \Omega_K^2 (c_s^2 f \alpha^2 - v_R^2)\right)\right]\nonumber\\
+%   &&\nonumber\\
+%   \label{eq:ODE:system:domega}
+%   \ddR \Omega &=& \frac{v_R\left[\Omega_K\left(c_s^2(4\alpha c_s^2 + 4 v_R R \Omega) - v_R^2 \alpha c_s^2 - 2 v_R^3 R \Omega + \alpha c_s^2 R^2 (\Omega^2 - \Omega_K^2)\right) - 2 \alpha c_s^2 R \Omega_K'\right]}{R^2\Omega_K\left[v_R^4 + c_s^2\left(f\alpha^2 c_s^2 - 2 v_R^2\right)\right]}
+% \end{eqnarray}
+where $\Omega_K$ as a function of $R$ is given by equation
+\eqref{eq:mukhopadhyay:omega:k} and we can easily find
+$\Omega_K'=\ddR\Omega_K$ by differentiating $\Omega_K$.
+
+Note that if we write
+\begin{equation}
+  \label{eq:y:definition}
+  \myvec{y}(R) = \threevector{v_R(R)}{c_s^2(R)}{\Omega(R)},
+\end{equation}
+then we can rewrite our ODE system as a single vector-valued ODE
+\begin{equation}
+  \label{eq:y:prime:equation}
+  \ddR\myvec{y} = \myvec{O}(y,R),
+\end{equation}
+for the appropriate vector-valued function $\myvec{O}$.
+
+\subsection{Boundary Conditions and the Shooting Method}
+\label{subsec:boundary:conditions}
+
+We now have a system of three coupled first-order ODEs and three
+unknown functions of one variable. To solve the system we need the
+following:
+\begin{itemize}
+\item A length scale. Over what range of $R$ do we wish to solve the
+  system?
+\item Boundary data. We need three boundary conditions to completely
+  specify the system.
+\end{itemize}
+
+It turns that these two issues are intimately related. Ultimately, we
+want to study the disk from the Schwarzschild radius to the edge of
+the disk. However, if we allow spherically-symmetric (Bondi) accretion
+to inform our intuition, we should expect fluids far from the black
+hole to have speeds less than the speed of sound and fluids near the
+black hole to have speeds exceeding the speed of sound
+\cite{Frank,PadmanabhanTA,Melia}. 
+
+The point where the fluid speed exceeds the sound speed is called the
+sonic point, $R_s$, and we should expect our ODE system to become
+degenerate at this point
+\cite{Shafee08,Frank,PadmanabhanTA,Melia,Narayan97}. To deal with this
+issue, we will impose regularity conditions that force our ODE system
+to be well-behaved at the sonic point and use this as boundary data. We
+can then numerically integrate equations \eqref{eq:ODE:system:dv},
+\eqref{eq:ODE:system:dc2s}, and \eqref{eq:ODE:system:domega} inward from the boundary of the disk to the sonic point. At the sonic point, we check to insure the regularization conditions hold. If they do, we continue to integrate to the Schwarzschild radius. \cite{Shafee08}.
+
+There's only one hangup. We don't know where the sonic point
+\textit{is}. To solve this problem, we use some clever guesswork. We
+guess a value for $R_s$ and integrate inward to it. If the values of
+$v_R$, $c_s^2$, and $\Omega$ at $R_s$ match the regularization
+conditions, then $R_s$ is the correct sonic point. We can now
+integrate inwards to the Schwarzschild radius to find the full
+solution. Otherwise, we cleverly guess a new value for $R_s$ and try
+again. This is called the \textit{shooting method}
+\cite{NumericalRecipes,Heath}.
+
+\subsubsection{The Self-Similar Solution}
+\label{subsubsec:self-similar}
+Let's talk about the boundary data at the outer boundary of the
+disk. Since the gravitational potential disappears far from the black
+hole, it's reasonable to guess that the accretion flow would asymptote
+to some uniform behavior far from the black hole. In 1987, Spruit et
+al. described a set of self-similar solutions for accretion disks
+while studying shocks in the disk \cite{Spruit87}. In 1994, Narayan
+and Yi rediscovered this solution family. In 1997, Narayan et
+al. found numerically that, far from the disk, solutions do indeed
+tend to be self-similar \cite{Narayan97}.
+
+Assume that
+\begin{equation}
+  \label{eq:self:similar}
+  \rho = a R^{-3/2},\ v_R = b R^{-1/2},\ \Omega = c R^{-3/2},\text{ and }c_s^2 = d R^{-1},
+\end{equation}
+where $a$, $b$, $c$, and $d$ are constants
+\cite{NarayanYi94}. Plug this ansatz into the accretion flow
+equations \eqref{eq:ODE:system:dv}, \eqref{eq:ODE:system:dc2s}, and
+\eqref{eq:ODE:system:domega}, and solve for $a$, $b$, $c$, and $d$. Shafee
+et al. followed this procedure and found the following self-similar
+solution \cite{Shafee08}:\footnote{We follow Shafee et al.'s lead and
+  use the ``ss'' subscript to mean ``self-similar'' \cite{Shafee08}.}
+\begin{eqnarray}
+  \label{eq:self:similar:c2s}
+  c_{s,ss}^2(R) &=& c_s^2 \frac{GM}{R} \text{ where } c_0^2 = \frac{2\epsilon '}{5\epsilon ' + 2(\epsilon ')^2 + \alpha^2}\text{ and }\epsilon ' = \frac{5/3-\gamma}{f(\gamma-1)},\\
+  \label{eq:self:similar:v:R}
+  v_{R,ss}(R) &=& v_0\sqrt{\frac{GM}{R}},\text{ where }v_0 = -\alpha\sqrt{\frac{c_0^2}{\epsilon '}},\\
+  \label{eq:self:similar:omega}
+  \Omega_{ss}(R) &=& \Omega_0\Omega_K(R),\text{ where }\Omega_0=\sqrt{c_0^2\epsilon_0}.
+\end{eqnarray}
+It is easy to reproduce this calculation in just a few lines in the
+likes of Maple or Mathematica. 
+
+Because Narayan et al. demonstrated that solutions tend to become self
+similar \cite{Narayan97}, rather than solving for the boundary
+conditions at the edge of the disk, we simply force the solution to be
+self-similar far away from the sonic point. We call the outer boundary
+of our computational domain $R_{out}$ and set it equal to
+\begin{equation}
+  \label{eq:def:R:out}
+  R_{out} = 10^5 R_s.
+\end{equation}
+Then we have the following outer boundary conditions:
+\begin{eqnarray}
+  \label{eq:vr:rout}
+  v_R(R_{out}) &=& v_0 \sqrt{\frac{GM}{R_{out}}}\\
+  c_s^2(R_{out}) &=& c_0^2 \frac{GM}{R_{out}}\\
+  \Omega(R_{out}) &=& \Omega_0\Omega_K.
+\end{eqnarray}
+
+\subsubsection{Asymptotic Disk Thickness}
+\label{subsubsec:asymptotic:disk:thickness}
+
+Before we continue to the conditions at the sonic point, we take a
+brief detour to discus the asymptotic behavior of the thickness of the
+disk. Asymptotically,
+\begin{equation}
+  \label{eq:omega:k:self-similar}
+  \Omega_K = \sqrt{\frac{GM}{R}}.
+\end{equation}
+And so \cite{Shafee08}
+\begin{eqnarray}
+  \label{eq:H:R}
+  H &=& \frac{c_{s,ss}}{\Omega_K} = c_0 R \nonumber\\
+  \Rightarrow \frac{H}{R} &=& \sqrt{2} \left( 5+2\,{\frac {5/3-\gamma}{f \left( \gamma-1
+ \right) }}+{\frac {{\alpha}^{2}f \left( \gamma-1 \right) }{5/3-\gamma
+}} \right) ^{-1/2}.
+\end{eqnarray}
+This means that we can set the asymptotic height scale of the disk by
+setting $f$ \cite{Shafee08}. As we will see numerically, the height
+scale does not change dramatically over most of the disk, so we can
+enforce that we have a thin disk \cite{Shafee08}. For $\gamma = 1.5$,
+$f = 3.5\times 10^{-3}$ gives $H/R = 0.1$ and $f=3.5\times 10^{-5}$
+gives $H/R=0.01$. We choose $H/R = 0.01$, which enforces an extremely
+thin dramatically radiation-cooled disk.
+
+\subsubsection{Regularizing the Sonic Point}
+\label{subsubsec:regularizing:the:sonic:point}
+
+When $\|\myvec{v}\| = \sqrt{\left(v_R \hat{R} + R
+    \Omega(R)\hat{\phi}\right)^2}$ becomes equal to $c_s^2$, our ODE
+system breaks down. To force it to stay well behaved, we impose
+regularity conditions as boundary conditions. It will be sufficient to
+force the derivative of the radial velocity to behave correctly, we
+substitute the energy equation \eqref{eq:energy:conservation:final}
+into the radial momentum conservation equation
+\eqref{eq:radial:momentum} and rearrange to attain a differential
+equation for $\dR{v_R}$.
+\begin{equation}
+  \label{eq:regularization:equation}
+  \left(\frac{2\gamma}{\gamma + 1} - \frac{v_R^2}{c_s^2}\right) \frac{1}{v_R} \dR{v_R} = \frac{R(\Omega_K^2 - \Omega^2)}{c_s^2} - \frac{2\gamma}{\gamma+1}\left(\frac{1}{R} - \frac{1}{\Omega_K}\dR{\Omega_K}\right) - \frac{\gamma-1}{\gamma+1} \frac{f\alpha R}{v_R} \dR{\Omega}.
+\end{equation}
+
+Then, to force $\dR{v_R}$ to stay well behaved, we impose that both
+sides of equation \eqref{eq:regularization:equation} are zero and
+attain
+\begin{eqnarray}
+  \label{eq:regularity:1}
+  v_R^2 &=& \frac{2\gamma}{\gamma + 1} c_s^2\\
+  \label{eq:regularity:2}
+  (\Omega_K^2 - \Omega^2)R &=& c_s^2 \frac{2\gamma}{\gamma+1}\left(\frac{1}{R} - \frac{1}{\Omega_K}\dR{\Omega_K}\right) + c_s^2 \frac{\gamma-1}{\gamma+1} \frac{f\alpha R}{v_R} \dR{\Omega}.
+\end{eqnarray}
+
+% \subsubsection{Boundary Data at the Sonic Point}
+% \label{subsubsec:initial:data:at:the:sonic:point}
+
+% The regularization conditions give us two pieces of initial data at
+% the sonic point. But we need three pieces of initial data. To get the
+% final piece of initial data, we evaluate equation
+% \eqref{eq:integrated:angular:momentum} at the outer boundary to
+% calculate the integration constant $j$:
+% \begin{equation}
+%   \label{eq:j:solution}
+%   j = \Omega(R_{out}) R_{out}^2 + \frac{\alpha c_s^2(R_{out}) R}{v_R(R_{out})}.
+% \end{equation}
+% Then, since $j$ is constant, we use
+% \eqref{eq:integrated:angular:momentum} as initial data at the sonic
+% point. However
+% 
+\section{Numerical Approach}
+\label{sec:numerical:approach}
+
+As we discussed in section \ref{subsec:boundary:conditions}, we use
+the shooting method to solve the boundary value problem
+\cite{NumericalRecipes,Heath}. The shooting method requires two
+algorithms. The first algorithm is an ODE solver that solves an
+initial value problem. The second algorithm is a root-finder, which
+which takes the ODE solver and cleverly guesses values of $R_s$ so
+that we find the correct value more quickly than if we searched by
+brute force.
+
+\subsection{Runge-Kutta Methods}
+\label{subsec:runge:kutta}
+
+Given a guess at $R_s$ and initial data, we solve the ODE system using
+a ``Runge-Kutta'' algorithm. Before we define Runge-Kutta, let's first
+describe a simpler, similar, method. The definition of a derivative is
+\begin{equation}
+  \label{eq:derivative:definition}
+  \ddR\myvec{y}(R) = \lim_{h\to 0}\left[\frac{\myvec{y}(R+h) - \myvec{y}(R)}{h}\right].
+\end{equation}
+Or, alternatively, if $h$ is sufficiently small,
+\begin{equation}
+  \label{eq:forward:euler}
+  \myvec{y}(R+h) = \myvec{y}(R) + h \dR{\myvec{y}}(R).
+\end{equation}
+If we know $\myvec{y}(R_0)$ and $\ddR\myvec{y}(R_0)$, then we can use
+equation \eqref{eq:forward:euler} to solve for $\myvec{y}(R+h)$. Then,
+let $R_1 = R_0 + h$ and use equation \eqref{eq:forward:euler} to solve
+for $\myvec{y}(R_1 + h)$. In this way, we can solve for $\myvec{y}(R)$
+for all $R > R_0$. This method is called the ``forward Euler'' method
+\cite{Heath}.
+
+Runge-Kutta methods are more sophisticated. One can use a Taylor
+series expansion to define a more accurate iterative scheme that
+relies on higher-order derivatives, not just first
+derivatives. However, since we only have first derivative information,
+we simulate higher-order derivatives by evaluating the first
+derivative at a number of different values of $R$. Then, of course,
+the higher-order derivatives are finite differences of these
+evaluations \cite{NumericalRecipes,Heath}.
+
+We use a fourth-order Runge-Kutta method---which means the method
+effectively incorporates the first four derivatives of a
+function---with adaptive step sizes: the 4(5) Runge-Kutta-Fehlberg
+method \cite{Fehlberg}. We use our own implementation, which can be
+found here: \cite{RKF45}.
+
+\subsection{Integrating Inwards}
+\label{subsec:integrating:inwards}
+
+Unfortunately, the Runge-Kutta method only integrates from small $R$
+to large $R$. Since we are integrating inwards, not outwards, we need
+to generate an analogous ODE system that goes from $R_{out}$ to $R_s$
+and not the other way around. To do this, we define some new
+variables. Let
+\begin{eqnarray}
+  \label{eq:def:tau}
+  \tau &=& \frac{R-R_{out}}{R_s - R_{out}}\\
+  &=& \frac{R-10^5 R_s}{R_s(1 - 10^5)},
+\end{eqnarray}
+so that 
+\begin{eqnarray}
+  \label{eq:r:of:tau}
+  R(\tau) &=& R_{out} + (R_s - R_{out}) \tau\\
+  &=& R_s\left[10^5 + (1 - 10^5)\tau\right].
+\end{eqnarray}
+$R(\tau=0)=R_{out}$ and $R(\tau=1)=R_s$. And let $\myvec{z}$ such that
+\begin{equation}
+  \label{eq:def:z}
+  \ddR\myvec{z} = - \myvec{O}(z,\tau),
+\end{equation}
+where $\myvec{O}$ is the vector-valued function in equation
+\eqref{eq:y:prime:equation}. Now, to integrate inwards from $R_{out}$
+we solve the system in equation \eqref{eq:def:z} by integrating
+upwards from $\tau=0$. Then, for a given $R$, we can find $\tau(R)$ and
+plug it into $\myvec{z}$. The result should be $\myvec{y}(R)$, where
+$\myvec{y}$ is the vector of variables we care about from equation
+\eqref{eq:y:definition}.
+
+\subsection{Root Finding}
+\label{subsec:root:finding}
+
+For root finding, we use the bisection algorithm
+\cite{Heath}. First, we test whether the left-hand sides of equations
+\eqref{eq:regularity:1} and \eqref{eq:regularity:2} are positive or
+negative. Assume without loss of generality that they are positive. If
+they're negative, then multiply the equations by $-1$.
+
+We bound $R_s$ between a maximum value and a minimum value. Call them
+$R_{max}$ and $R_{min}.$ Then we guess that $R_s$ is exactly between
+these two values and integrate inward from $R_{out}$ to our guessed
+$R_s$, call it $R_g$. If the left-hand sides of equations
+\eqref{eq:regularity:1} and \eqref{eq:regularity:2} are positive, we
+chose too large of a value for $R_s$. We let $R_g$ be the new
+$R_{max}$ and repeat. If they're negative, we chose too small of a value
+for $R_s$. We let $R_g$ be the new $R_{min}$ and repeat. Eventually we
+will converge on the correct value.
+
+\subsection{Testing The Implementation}
+\label{subsec:implementation:testing}
+
+To actually solve the system derived in section \ref{sec:the:model},
+we implement the shooting method with a 4(5) Runge-Kutta-Fehlberg
+integrator as the initial-value solver and with the bisection method
+as the root-finding algorithm \cite{NumericalRecipes,Heath}. We
+implement both tools in C++ from scratch. We chose C++ because, even
+though it contains modern programming tools such as object-oriented
+and functional paradigms, it is extremely fast, often performing
+within a factor of 2 more CPU cycles than C
+\cite{BenchmarksGame}.\footnote{It is important to take numerical
+  benchmarks with a grain of salt. Optimization and the skill of the
+  programmer are substantially larger factors in code performance
+  \cite{WrongData}.} 
+
+We implemented and tested the Runge-Kutta initial-value solver
+separately. The code is open-sourced and the implementation and unit
+tests can be found online at \cite{RKF45}. In addition, we tested the
+algorithm by using it as the time-stepping component in a simple
+(1+1)-dimensional wave equation solver, using the method of lines (for
+more information, see e.g., \cite{Heath}). This test can also be found
+online at \cite{WaveEquation}. We tested the implementation of the
+root solver and the shooting method less intensely since these tools
+are less sophisticated.\footnote{We tested the root solver on a simple
+  polynomial and found it to behave as expected.} The implementation
+of the entire algorithm and a few simple tests can be found at
+\cite{AccretionShooting}. To convince you that the algorithm
+functioned correctly, we now briefly describe some of the tests
+performed and their significance.
+
+\subsubsection{High-Order One Point Integration}
+\label{subsubsec:one-point}
+
+A fourth-order Taylor series method should be able to solve the
+initial value problem
+\begin{equation}
+  \label{eq:fourth:order:IVP}
+  \begin{cases}
+  \frac{d^4 y}{d t^4} = C_4\ \forall\ t\in\R\\
+  \frac{d^3 y}{d t^3}\eval_{t=0} = C_3\\
+  \frac{d^2 y}{d t^2}\eval_{t=0} = C_2\\
+  \frac{d y}{dt}\eval_{t=0} = C_1\\
+  y(t=0) = C_0,
+  \end{cases}\text{ where }C_i=\text{constant}\ \forall\ i\in\{0,1,2,3,4\}
+\end{equation}
+in a single computer time step. This is because an equation like
+\eqref{eq:fourth:order:IVP} contains only fourth-order
+information. Similarly, a fifth-order Taylor series method should be
+able to solve a sufficiently simple initial value problem in a single
+time step. 
+
+To test our method, We performed this test on the fourth-order
+integration and the fifth-order error estimation pieces of our
+Runge-Kutta-Fehlberg method and found discrepancy on the order of
+machine epsilon, the round-off error inherent in the discretization of
+the real number line. Figure \ref{fig:polynomial:integration} shows
+the results of one such integration test. If the reader is so
+inclined, they can find this test in the unit test driver in
+\cite{RKF45}.
+
+\begin{figure}[h!t!b!]
+  \begin{center}
+    \leavevmode
+    \includegraphics[width=12cm]{../figures/rkf45_for_fourth_order_polynomial.png}
+    \caption[4(5) Runge-Kutta Method for a Fourth-Order
+    Polynomial]{4(5) Runge-Kutta Method for a Fourth-Order
+      Polynomial. We demonstrate that our Runge-Kutta method is indeed
+      a fourth-order Taylor series method by integrating a simple
+      fourth-order initial value problem in a single computer time
+      step. Each red dot is an integration starting at $t=0$ to
+      $t=x$. In each case, the result is a perfect $x^4$.}
+    \label{fig:polynomial:integration}
+  \end{center}
+\end{figure}
+
+\subsubsection{A Simple Stability Test}
+\label{subsubsec:simple:stability}
+
+As a simple test of stability, we use the Runge-Kutta initial-value
+solver to solve the $2^{nd}$-order ODE system
+\begin{equation}
+  \label{eq:SHO}
+  \frac{d^2 y(t)}{d t^2} = -y(t)\text{ with } \begin{cases}y(0)=0\\y'(0)=1\end{cases}.
+\end{equation}
+The solution to this problem is naturally 
+\begin{equation}
+  \label{eq:SHO:solution}
+  y(t) = \sin(t).
+\end{equation}
+
+\begin{figure}[htb!]
+  \centering
+  \includegraphics[width=14cm]{../figures/rk45_with_1-1000th_relative_and_absolute_error.png}
+  \caption[A simple stability test]{A high-order integration of
+    equation \eqref{eq:SHO} compared to the analytic solution. Over
+    time, even a high-accuracy solution slowly diverges because the
+    higher-order terms of the Taylor series are never zero.}
+  \label{fig:SHO:1}
+\end{figure}
+
+Figure \ref{fig:SHO:1} shows a typical high-accuracy integration of
+this equation and compares it to the expected value. An oscillatory
+solution is a good test of the stability of a Taylor-series method
+because the Taylor series always has non-zero higher-order terms that
+are not captured. And thus error builds up from truncating the Taylor
+series. Moreover, we roughly estimate the buildup of error by summing
+up the difference between a fourth-order and a fifth-order
+approximation at each time step. If the actual measured error is less
+than this, we're in very good shape. To investigate this, we require a
+very low error tolerance of the integrator and measure its deviation
+based on local truncation error. Figure \ref{fig:SHO:2} shows the
+results.
+
+\begin{figure}[htb!]
+  \begin{center}
+    \leavevmode
+    \includegraphics[width=14cm]{../figures/rkf45_truncation_error_low_accuracy.png}
+    \caption[A simple stability test]{A low-order comparison of total
+      error buildup as expected by the local truncation error compared
+      to the actual measured deviation from the analytic solution. The
+      total error is well within tolerance.}
+  \end{center}
+  \label{fig:SHO:2}
+\end{figure}
+
+\section{Results}
+\label{sec:results}
+
+In the attempted simulations we assume the following parameters:
+\begin{eqnarray}
+  \label{eq:choices}
+  M = 10 M_{\odot} & a_* = 0 \nonumber\\
+  f = 3.5\times 10^{-5} & \alpha = 0.1\\
+  \gamma = 1.5&\dot{M} = -(0.11)\frac{4\pi G M m_p}{(1-f)c\sigma_T},\nonumber  
+\end{eqnarray}
+where $\dot{M}$ is $11\%$ the Eddington accretion rate, $\sigma_T$ is
+the Thomson scattering cross-section, and $m_p$ is the mass of a
+proton.
+
+Unfortunately, the shooting method never correctly determined the
+sonic radius. In figures \ref{fig:speed:condition} and
+\ref{fig:angular:condition}, we plot the regularization conditions
+\eqref{eq:regularity:1} and \eqref{eq:regularity:2} at the guessed
+``sonic point'' after guessing a sonic radius and integrating
+inwards. The conditions both diverge. Condition
+\eqref{fig:speed:condition} diverges to $-\infty$ while condition
+\eqref{eq:regularity:2} diverges to $+\infty$.
+
+\begin{figure}[h!t!b!]
+  \begin{center}
+    \leavevmode
+    \includegraphics[width=12cm]{../figures/speed_condition_plot.png}
+    \caption[Constraints]{Evaluation of the regularization condition
+      \eqref{eq:regularity:1} at the guessed ``sonic point'' after
+      integrating inwards from the outer boundary. The condition
+      should evaluate to zero at the sonic point. However, it instead
+      diverges to $-\infty$. The units on the $y$-axis are $m^2/s^2$.}
+    \label{fig:speed:condition}
+  \end{center}
+\end{figure}
+
+\begin{figure}[h!t!b!]
+  \begin{center}
+    \leavevmode
+    \includegraphics[width=12cm]{../figures/angular_constraint.png}
+    \caption[Constraints]{Evaluation of the regularization condition
+      \eqref{eq:regularity:2} at the guessed ``sonic point'' after
+      integrating inwards from the outer boundary. The condition
+      should evaluate to zero at the sonic point. However, it instead
+      diverges to $+\infty$. The units on the $y$-axis are $m/s^2$.}
+    \label{fig:angular:condition}
+  \end{center}
+\end{figure}
+
+Surprisingly, these values line up perfectly with the values of the
+constraint equations evaluated on the self-similar solution described
+in section \ref{subsubsec:self-similar} at the guessed sonic
+radius. This indicates that the solution is not changing very much as
+we integrate from the outer boundary, and indeed a direct examination
+of the integration data confirms this. This static behavior is in
+direct contradiction with Shafee et al., who predict significant
+changes in every variable.
+
+We suspect that the difficulty arises from integrating inwards from
+the outer boundary as opposed to outwards from the sonic
+point. Although it is not at all obvious, when the sonic point
+regularity conditions are true, equations \eqref{eq:ODE:system:dv},
+\eqref{eq:ODE:system:dc2s}, and \eqref{eq:ODE:system:domega} become
+indeterminate and read $0/0$. In practice, sufficiently close to the
+sonic point, this might cause the numerical algorithm to evaluate all
+derivatives as zero and prevent the system from evolving as it
+should. And until the sonic point is reached, the self-similar
+solution is just that, self-similar. It doesn't change much anyway.
+
+It might be possible to salvage the shooing method by using equation
+\eqref{eq:integrated:angular:momentum} at the outer boundary to
+calculate the integration constant $j$:
+\begin{equation}
+  \label{eq:j:solution}
+  j = \Omega(R_{out}) R_{out}^2 + \frac{\alpha c_s^2(R_{out}) R}{v_R(R_{out})}.
+\end{equation}
+Then, since $j$ is constant, use
+\eqref{eq:integrated:angular:momentum} and the regularity conditions
+\eqref{eq:regularity:1} and \eqref{eq:regularity:2} to solve for
+initial data at the sonic point and integrate outwards instead of
+inwards. Unfortunately, the resulting system of algebraic equations is
+highly-nonlinear and must be solved numerically. In dimensions greater
+than one, root-finding methods for nonlinear systems of equations are
+very slow and unreliable \cite{NumericalRecipes,Heath}, and using the
+shooting method to integrate outwards implies running a root-finding
+algorithm for every single guess of $R_s$. This seemed very
+inefficient, which was why we didn't attempt it in the first place.
+
+Shafee et al. didn't use the shooting method. Instead, they used a
+class of methods called ``relaxation methods,'' \cite{Shafee08}
+wherein one iteratively chooses a discretization for the ODE system
+that matches the boundary conditions \cite{NumericalRecipes}. In
+retrospect, it is likely that Shafee and collaborators predicted that
+the shooting method would be too naive. In a future attempt to
+generate a physically meaningful solution, we recommend the use of a
+dedicated boundary-value solver algorithm like a relaxation method.
+
+\section{Summary and Discussion}
+\label{sec:conclusion}
+
+In summary, we were able to reproduce the analytic calculations of
+Shafee et al. \cite{Shafee08} starting from Shakura and Sunyaev in
+1973 \cite{ShakuraSunyaev73} and working our way forwards through the
+history of axisymmetric accretion disks with effective viscosity
+\cite{PBK81,MuchotrzebPaczynski82,Kato88a,Abramowicz88,PophamNarayan91,NarayanPopham93,ChenTaam93,Narayan97,Chen97,AfshordiPaczynski03,NarayanYi94}. For
+the fluid dynamics equations, We use the $\alpha$ prescription of
+Shakura and Sunyaev \cite{ShakuraSunyaev73}, the pseudo-Newtonian
+gravitational potentials of Mukopadhyay \cite{Mukhopadhyay02} and
+Paczynski and Wiita \cite{PW80}. For the boundary data, we regularize
+the ODE system at the sonic point according to Shafee et al.'s method
+\cite{Shafee08} and we impose self-similarity conditions at the outer
+boundary, according to Spruit et al. \cite{Spruit87} and Narayan et
+al, \cite{Narayan97}.
+
+We attempt to solve the resulting first-order ODE system by using the
+shooting method and integrating inwards from the outer boundary using
+a Runge-Kutta integrator. We are able to demonstrate the accuracy and
+stability of our numerical toolbox. However, the integration fails and
+remains mostly static and self-similar. We believe the problem stems
+from how the regularization conditions at the sonic point interact
+with the Runge-Kutta integrator. Therefore, a future attempt must
+either solve the regularization conditions to attain initial data
+integrate outwards or use a dedicated boundary-value problem solving
+tool such as a relaxation methods algorithm.
+
+Although we failed to reproduce Shafee et al.'s results, we feel that
+this work is a valuable exploration of the methods in and history of
+accretion disk physics and offers valuable insight into which
+numerical approaches are appropriate for this sort of problem.
+
+\section{Acknowledgments}
+\label{sec:acknowledgments}
+
+I would like to thank Professor Erik Schnetter for his advice on
+numerical methods and for understanding my time constraints. I'd also
+like to thank Scott VanBommel and Katherine White for many helpful
+discussions. Finally, I'd like to thank Professor Niayesh Afshordi for
+a fun, educational semester, and for assigning this challenging and
+interesting project.
+
+\appendix
+\section{Demonstration that $H\approx c_s/\Omega_K$}
+\label{app:H:relation}
+
+Assume an axisymmetric thin disk orbiting around a central Newtonian
+compact object. Let the object have mass $M$ and let the radial
+distance from the central object be $R$. Let the height above the
+plane of rotation be $H$. Let the vector pointing out from the central
+object be $\vec{r}$. This vector can be decomposed into a radially
+outward component and a vertical component as follows
+\begin{equation}
+  \label{eq:r:decomposition}
+  \vec{r} = R\hat{R} + z\vec{z},
+\end{equation}
+where $\hat{R}$ is the radial direction outward and $\hat{z}$ is the
+direction out of the plane of rotation.
+
+The vertical component of the gravitational field due to the star is
+\begin{equation}
+  \label{eq:vertical_field}
+  g_z = -g_* \sin(\theta) = -\frac{G M}{r^2}\sin(\theta),
+\end{equation}
+where $\theta$ is the angle between $\hat{r}$ and the orbital plane
+and $g_*$ is the full gravitational field due to the
+star\cite{ThortonMarion}. For a thin disk confined to roughly a single
+orbital radius ($r\approx R$ and $\theta << 1$),
+\begin{equation}
+  \label{eq:gz:new}
+  g_z = -\frac{G M}{R^3} z.
+\end{equation}
+But if the disk is in a circular orbit (and it should circularize),
+then it has Keplerian angular velocity \cite{ThortonMarion}
+\begin{equation}
+  \label{eq:keplerian:angular:velocity:appendix}
+  \Omega_K = -\sqrt{\frac{GM}{R^3}}.
+\end{equation}
+So, 
+\begin{equation}
+  \label{eq:gz:final}
+  g_z = -\Omega_K^2 z.
+\end{equation}
+
+If we assume hydrostatic equilibrium, we have Euler's equation
+\begin{eqnarray}
+  \label{eq:euler}
+  \frac{d\vec{u}}{dt} &=& \frac{1}{\rho}\myvec{\nabla} P + \myvec{\nabla}\Phi = 0,\\
+  \Rightarrow \frac{1}{\rho}{\myvec{\nabla} P} &=& -\myvec{\nabla}\Phi = g
+\end{eqnarray}
+where $\vec{u}$ is the velocity vector field, $\rho$ is the density of
+the disk, $P$ is the pressure of the disk, and $\Phi$ is the
+gravitational potential \cite{Melia,Thompson}. If we confine ourselves
+to the z direction, this gives us that
+\begin{equation}
+  \label{eq:vertical:hydrostatic}
+  \frac{1}{\rho}\frac{dp}{dz} = -\Omega_K^2 z.
+\end{equation}
+Now, recall that the speed of sound $c_s$ is defined by \eqref{eq:p:rho:relation} as
+\begin{equation}
+  \label{eq:def:cs}
+  P = c_s^2 \rho.
+\end{equation}
+Then
+\begin{eqnarray}
+  \label{eq:hydrostatic:lhs}
+  \frac{1}{\rho}\frac{dP}{dz} &=& \frac{c_s^2}{\rho}\frac{d\rho}{dz}.
+\end{eqnarray}
+Then we have 
+\begin{eqnarray}
+  \label{eq:hydrostatic:solving}
+  \frac{c_s^2}{\rho}\frac{d\rho}{dz} &=& -\Omega_K^2 z\\
+  \Rightarrow c_s^2 \int_{\rho_0}^{\rho_H} \frac{1}{\rho'}d\rho' &=& -\Omega_K^2 \int_0^H z dz\\
+  \Rightarrow c_s^2\ln\left(\frac{\rho_0}{\rho_H}\right) &=& \frac{1}{2}\Omega_K^2 H^2\\
+  \Rightarrow \frac{c_s}{H} &=& \Omega_K \left[2\ln\left(\frac{\rho_0}{\rho_H}\right)\right]^{-1/2},
+\end{eqnarray}
+where $\rho_H$ is the density at height $H$ and $\rho_0$ is the
+density at the orbital plane. Of course, $\ln(x)$ grows incredibly
+slowly, and $\sqrt{\ln(x)}$ grows equally slowly. So the $\ln$ term is
+of order 1 and, for a rough approximation, we can safely neglect it:
+\begin{equation}
+  \label{eq:final:cs}
+  H \approx \frac{c_s}{\Omega_K}.
+\end{equation}
+
+%Bibliography
+\newpage
+\bibliography{bh_accretion}
+\bibliographystyle{unsrt}
+
+\end{document}

@@ -1,6 +1,6 @@
 // accretion_spectrum.cpp
 
-// Time-stamp: <2013-12-08 01:31:24 (jonah)>
+// Time-stamp: <2013-12-08 20:32:11 (jonah)>
 // Author: Jonah Miller (jonah.maxwell.miller@gmail.com)
 
 // This is the implementation of an axisymmetric accretion disk.
@@ -18,9 +18,9 @@ using std::abs;
 // dVectors.
 // ----------------------------------------------------------------------
 dVector operator-(const dVector& in) {
-  dVector out(in.size());
+  dVector out;
   for (int i = 0; i < (int)in.size(); i++) {
-    out[i] = -in[i];
+    out.push_back(in[i]);
   }
   return out;
 }
